@@ -1,0 +1,85 @@
+---
+- name: Determine basicauth tmp filename
+  set_fact:
+    prometheus_ssh_exporter_basicauth_file_tmp: "{{ prometheus_ssh_exporter_basicauth_file_tmp }}_{{ inventory_hostname }}"
+  when: prometheus_ssh_exporter_basicauth_enabled | bool
+
+- name: Ensure prometheus-ssh-exporter image is pulled
+  community.docker.docker_image:
+    name: "{{ prometheus_ssh_exporter_docker_image }}"
+    source: "{{ 'pull' if ansible_version.major > 2 or ansible_version.minor > 7 else omit }}"
+    force_source: "{{ prometheus_ssh_exporter_docker_image_force_pull if ansible_version.major > 2 or ansible_version.minor >= 8 else omit }}"
+    force: "{{ omit if ansible_version.major > 2 or ansible_version.minor >= 8 else prometheus_ssh_exporter_docker_image_force_pull }}"
+  register: result
+  retries: "{{ devture_playbook_help_container_retries_count }}"
+  delay: "{{ devture_playbook_help_container_retries_delay }}"
+  until: result is not failed
+
+- name: Ensure prometheus-ssh-exporter paths exist
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: directory
+    mode: 0700
+    owner: "{{ prometheus_ssh_exporter_uid }}"
+    group: "{{ prometheus_ssh_exporter_gid }}"
+  with_items:
+    - "{{ prometheus_ssh_exporter_base_path }}"
+    - "{{ prometheus_ssh_exporter_config_path }}"
+
+- name: Generate basic auth file
+  community.general.htpasswd:
+    path: "{{ prometheus_ssh_exporter_basicauth_file_tmp }}"
+    name: "{{ prometheus_ssh_exporter_basicauth_user }}"
+    password: "{{ prometheus_ssh_exporter_basicauth_password }}"
+  become: false
+  delegate_to: 127.0.0.1
+  when: prometheus_ssh_exporter_basicauth_enabled | bool
+
+- name: Ensure prometheus-ssh-exporter labels file is created
+  ansible.builtin.template:
+    src: "{{ role_path }}/templates/labels.j2"
+    dest: "{{ prometheus_ssh_exporter_config_path }}/labels"
+    owner: "{{ prometheus_ssh_exporter_uid }}"
+    group: "{{ prometheus_ssh_exporter_gid }}"
+    mode: 0640
+
+- name: Ensure prometheus-ssh-exporter config is created
+  ansible.builtin.copy:
+    content: "{{ prometheus_ssh_exporter_configuration | to_nice_yaml(indent=2, width=999999) }}"
+    dest: "{{ prometheus_ssh_exporter_config_path }}/config.yaml"
+    owner: "{{ prometheus_ssh_exporter_uid }}"
+    group: "{{ prometheus_ssh_exporter_gid }}"
+    mode: 0640
+
+- name: Ensure basic auth file is saved on the server
+  ansible.builtin.copy:
+    src: "{{ prometheus_ssh_exporter_basicauth_file_tmp }}"
+    dest: "{{ prometheus_ssh_exporter_basicauth_file }}"
+    owner: "{{ prometheus_ssh_exporter_uid }}"
+    group: "{{ prometheus_ssh_exporter_gid }}"
+    mode: 0640
+  when: prometheus_ssh_exporter_basicauth_enabled | bool
+
+- name: Ensure temporary basic auth file is removed
+  ansible.builtin.file:
+    path: "{{ prometheus_ssh_exporter_basicauth_file_tmp }}"
+    state: absent
+  become: false
+  delegate_to: 127.0.0.1
+  when: prometheus_ssh_exporter_basicauth_enabled | bool
+
+- name: Print basic auth credentials
+  debug:
+    msg: "login={{ prometheus_ssh_exporter_basicauth_user }} password={{ prometheus_ssh_exporter_basicauth_password }}"
+  when: prometheus_ssh_exporter_basicauth_enabled | bool and prometheus_ssh_exporter_basicauth_print | bool
+
+- name: Ensure prometheus-ssh-exporter container network is created
+  community.general.docker_network:
+    name: "{{ prometheus_ssh_exporter_container_network }}"
+    driver: bridge
+
+- name: Ensure prometheus-ssh-exporter systemd service installed
+  ansible.builtin.template:
+    src: "{{ role_path }}/templates/prometheus-ssh-exporter.service.j2"
+    dest: "{{ devture_systemd_docker_base_systemd_path }}/{{ prometheus_ssh_exporter_identifier }}.service"
+    mode: 0644

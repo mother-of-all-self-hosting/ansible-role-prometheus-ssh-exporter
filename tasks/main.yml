@@ -1,0 +1,24 @@
+---
+
+- name: Ensure prometheus-ssh-exporter is installed
+  tags:
+    - setup-all
+    - setup-prometheus-ssh-exporter
+    - install-all
+    - install-prometheus-ssh-exporter
+  block:
+    - name: Include prometheus-ssh-exporter config validation tasks
+      when: prometheus_ssh_exporter_enabled | bool
+      ansible.builtin.include_tasks: "{{ role_path }}/tasks/validate_config.yml"
+    - name: Include prometheus-ssh-exporter installation tasks
+      when: prometheus_ssh_exporter_enabled | bool
+      ansible.builtin.include_tasks: "{{ role_path }}/tasks/install.yml"
+
+- name: Ensure prometheus-ssh-exporter is removed
+  tags:
+    - setup-all
+    - setup-prometheus-ssh-exporter
+  block:
+    - name: Include prometheus-ssh-exporter removal tasks
+      when: not prometheus_ssh_exporter_enabled | bool
+      ansible.builtin.include_tasks: "{{ role_path }}/tasks/uninstall.yml"

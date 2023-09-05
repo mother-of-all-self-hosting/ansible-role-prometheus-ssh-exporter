@@ -1,0 +1,24 @@
+---
+- name: Check existence of prometheus-ssh-exporter service
+  ansible.builtin.stat:
+    path: "{{ devture_systemd_docker_base_systemd_path }}/{{ prometheus_ssh_exporter_identifier }}.service"
+  register: prometheus_ssh_exporter_service_stat
+
+- name: Ensure prometheus-ssh-exporter is removed
+  when: prometheus_ssh_exporter_service_stat.stat.exists | bool
+  block:
+    - name: Ensure prometheus-ssh-exporter is stopped
+      ansible.builtin.service:
+        name: "{{ prometheus_ssh_exporter_identifier }}"
+        state: stopped
+        enabled: false
+        daemon_reload: true
+    - name: Ensure prometheus-ssh-exporter service doesn't exist
+      ansible.builtin.file:
+        path: "{{ devture_systemd_docker_base_systemd_path }}/{{ prometheus_ssh_exporter_identifier }}.service"
+        state: absent
+
+    - name: Ensure prometheus-ssh-exporter base path doesn't exist
+      ansible.builtin.file:
+        path: "{{ prometheus_ssh_exporter_base_path }}"
+        state: absent
