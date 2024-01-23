@@ -15,19 +15,6 @@ prometheus_ssh_exporter_docker_image: "{{ prometheus_ssh_exporter_docker_image_n
 prometheus_ssh_exporter_docker_image_name_prefix: "docker.io/"
 prometheus_ssh_exporter_docker_image_force_pull: "{{ prometheus_ssh_exporter_docker_image.endswith(':latest') }}"
 
-# enable basic auth
-prometheus_ssh_exporter_basicauth_enabled: false
-# temporary file name on the host that runs ansible
-prometheus_ssh_exporter_basicauth_file_tmp: "/tmp/prometheus_ssh_exporter_htpasswd"
-# target basic auth file on the server
-prometheus_ssh_exporter_basicauth_file: "{{ prometheus_ssh_exporter_config_path }}/htpasswd"
-# print username and password in the play log, useful when they generated automatically
-prometheus_ssh_exporter_basicauth_print: false
-# username
-prometheus_ssh_exporter_basicauth_user: ''
-# password
-prometheus_ssh_exporter_basicauth_password: ''
-
 # Default ssh exporter configuration template which covers the generic use case.
 # You can customize it by controlling the various variables inside it.
 #

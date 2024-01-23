@@ -1,8 +1,4 @@
 ---
-- name: Determine basicauth tmp filename
-  set_fact:
-    prometheus_ssh_exporter_basicauth_file_tmp: "{{ prometheus_ssh_exporter_basicauth_file_tmp }}_{{ inventory_hostname }}"
-  when: prometheus_ssh_exporter_basicauth_enabled | bool
 
 - name: Ensure prometheus-ssh-exporter image is pulled
   community.docker.docker_image:
@@ -26,15 +22,6 @@
     - "{{ prometheus_ssh_exporter_base_path }}"
     - "{{ prometheus_ssh_exporter_config_path }}"
 
-- name: Generate basic auth file
-  community.general.htpasswd:
-    path: "{{ prometheus_ssh_exporter_basicauth_file_tmp }}"
-    name: "{{ prometheus_ssh_exporter_basicauth_user }}"
-    password: "{{ prometheus_ssh_exporter_basicauth_password }}"
-  become: false
-  delegate_to: 127.0.0.1
-  when: prometheus_ssh_exporter_basicauth_enabled | bool
-
 - name: Ensure prometheus-ssh-exporter labels file is created
   ansible.builtin.template:
     src: "{{ role_path }}/templates/labels.j2"
@@ -50,28 +37,6 @@
     owner: "{{ prometheus_ssh_exporter_uid }}"
     group: "{{ prometheus_ssh_exporter_gid }}"
     mode: 0640
-
-- name: Ensure basic auth file is saved on the server
-  ansible.builtin.copy:
-    src: "{{ prometheus_ssh_exporter_basicauth_file_tmp }}"
-    dest: "{{ prometheus_ssh_exporter_basicauth_file }}"
-    owner: "{{ prometheus_ssh_exporter_uid }}"
-    group: "{{ prometheus_ssh_exporter_gid }}"
-    mode: 0640
-  when: prometheus_ssh_exporter_basicauth_enabled | bool
-
-- name: Ensure temporary basic auth file is removed
-  ansible.builtin.file:
-    path: "{{ prometheus_ssh_exporter_basicauth_file_tmp }}"
-    state: absent
-  become: false
-  delegate_to: 127.0.0.1
-  when: prometheus_ssh_exporter_basicauth_enabled | bool
-
-- name: Print basic auth credentials
-  debug:
-    msg: "login={{ prometheus_ssh_exporter_basicauth_user }} password={{ prometheus_ssh_exporter_basicauth_password }}"
-  when: prometheus_ssh_exporter_basicauth_enabled | bool and prometheus_ssh_exporter_basicauth_print | bool
 
 - name: Ensure prometheus-ssh-exporter container network is created
   community.general.docker_network:
