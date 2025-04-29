@@ -10,15 +10,23 @@
 # Project source code URL: https://github.com/treydock/ssh_exporter
 
 prometheus_ssh_exporter_enabled: true
+
 prometheus_ssh_exporter_identifier: prometheus-ssh-exporter
+prometheus_ssh_exporter_base_path: "/{{ prometheus_ssh_exporter_identifier }}"
+prometheus_ssh_exporter_config_path: "{{ prometheus_ssh_exporter_base_path }}/config"
+
+prometheus_ssh_exporter_version: v1.5.0
+
 prometheus_ssh_exporter_uid: ''
 prometheus_ssh_exporter_gid: ''
 
-# You don't need to configure a hostname and path prefix if you're not exposing this.
+# The hostname at which Prometheus SSH exporter is served. You don't need to configure it if you're not exposing this.
 prometheus_ssh_exporter_hostname: ''
+
+# The path at which Prometheus SSH exporter is exposed. You don't need to configure it if you're not exposing this.
+# This value must either be `/` or not end with a slash.
 prometheus_ssh_exporter_path_prefix: "/metrics/ssh-exporter"
 
-prometheus_ssh_exporter_version: v1.5.0
 prometheus_ssh_exporter_container_image: "{{ prometheus_ssh_exporter_container_image_registry_prefix }}treydock/ssh_exporter:{{ prometheus_ssh_exporter_container_image_tag }}"
 prometheus_ssh_exporter_container_image_tag: "{{ prometheus_ssh_exporter_version }}"
 prometheus_ssh_exporter_container_image_registry_prefix: "{{ prometheus_ssh_exporter_container_image_registry_prefix_upstream }}"
@@ -26,31 +34,10 @@ prometheus_ssh_exporter_container_image_registry_prefix_upstream: "{{ prometheus
 prometheus_ssh_exporter_container_image_registry_prefix_upstream_default: docker.io/
 prometheus_ssh_exporter_container_image_force_pull: "{{ prometheus_ssh_exporter_container_image.endswith(':latest') }}"
 
-# Default ssh exporter configuration template which covers the generic use case.
-# You can customize it by controlling the various variables inside it.
+# Controls whether the prometheus-ssh-exporter container exposes its HTTP port (tcp/9100 in the container).
 #
-# For a more advanced customization, you can extend the default (see `prometheus_ssh_exporter_configuration_extension_yaml`)
-# or completely replace this variable with your own template.
-prometheus_ssh_exporter_configuration_yaml: "{{ lookup('template', 'templates/config.yaml.j2') }}"
-
-prometheus_ssh_exporter_configuration_extension_yaml: |
-  # Your custom YAML configuration for ssh exporter goes here.
-  # This configuration extends the default starting configuration (`prometheus_ssh_exporter_configuration_yaml`).
-  #
-  # You can override individual variables from the default configuration, or introduce new ones.
-  #
-  # If you need something more special, you can take full control by
-  # completely redefining `prometheus_ssh_exporter_configuration_yaml`.
-
-prometheus_ssh_exporter_configuration_extension: "{{ prometheus_ssh_exporter_configuration_extension_yaml | from_yaml if prometheus_ssh_exporter_configuration_extension_yaml | from_yaml is mapping else {} }}"
-
-# Holds the final borgmatic configuration (a combination of the default and its extension).
-# You most likely don't need to touch this variable. Instead, see `prometheus_ssh_exporter_configuration_yaml`.
-prometheus_ssh_exporter_configuration: "{{ prometheus_ssh_exporter_configuration_yaml | from_yaml | combine(prometheus_ssh_exporter_configuration_extension, recursive=True) }}"
-
-# A path on host where all related files will be saved
-prometheus_ssh_exporter_base_path: "/{{ prometheus_ssh_exporter_identifier }}"
-prometheus_ssh_exporter_config_path: "{{ prometheus_ssh_exporter_base_path }}/config"
+# Takes an "<ip>:<port>" value (e.g. "127.0.0.1:9100"), just a port number or empty string to not expose.
+prometheus_ssh_exporter_container_http_host_bind_port: ''
 
 # The base container network
 #
@@ -64,6 +51,9 @@ prometheus_ssh_exporter_config_path: "{{ prometheus_ssh_exporter_base_path }}/co
 # For now, we'll live with that, until someone develops a better solution.
 prometheus_ssh_exporter_container_network: "{{ prometheus_ssh_exporter_identifier }}"
 
+# The port number in the container
+prometheus_ssh_exporter_container_http_port: 9312
+
 # A list of additional container networks that the container would be connected to.
 # The role does not create these networks, so make sure they already exist.
 #
@@ -74,21 +64,6 @@ prometheus_ssh_exporter_container_network: "{{ prometheus_ssh_exporter_identifie
 prometheus_ssh_exporter_container_additional_networks: "{{ prometheus_ssh_exporter_container_additional_networks_auto + prometheus_ssh_exporter_container_additional_networks_custom }}"
 prometheus_ssh_exporter_container_additional_networks_auto: []
 prometheus_ssh_exporter_container_additional_networks_custom: []
-
-# A list of extra arguments to pass to the container
-prometheus_ssh_exporter_container_extra_arguments: []
-
-# A list of extra arguments to pass to the ssh_exporter process
-prometheus_ssh_exporter_process_extra_arguments: []
-
-# List of systemd services that prometheus-ssh-exporter.service depends on
-prometheus_ssh_exporter_systemd_required_services_list: "{{ prometheus_ssh_exporter_systemd_required_services_list_default + prometheus_ssh_exporter_systemd_required_services_list_auto + prometheus_ssh_exporter_systemd_required_services_list_custom }}"
-prometheus_ssh_exporter_systemd_required_services_list_default: "{{ [devture_systemd_docker_base_docker_service_name] if devture_systemd_docker_base_docker_service_name else [] }}"
-prometheus_ssh_exporter_systemd_required_services_list_auto: []
-prometheus_ssh_exporter_systemd_required_services_list_custom: []
-
-# List of systemd services that prometheus-ssh-exporter.service wants
-prometheus_ssh_exporter_systemd_wanted_services_list: []
 
 # prometheus_ssh_exporter_container_labels_traefik_enabled controls whether labels to assist a Traefik reverse-proxy will be attached to the container.
 # See `../templates/labels.j2` for details.
@@ -112,9 +87,39 @@ prometheus_ssh_exporter_container_labels_traefik_tls_certResolver: default  # no
 #   another.label="here"
 prometheus_ssh_exporter_container_labels_additional_labels: ''
 
-# A port number in the container
-prometheus_ssh_exporter_container_http_port: 9312
+# A list of extra arguments to pass to the container
+prometheus_ssh_exporter_container_extra_arguments: []
 
-# Controls whether the prometheus-ssh-exporter container exposes its HTTP port (tcp/9100 in the container).
-# Takes an "<ip>:<port>" value (e.g. "127.0.0.1:9100"), just a port number or empty string to not expose.
-prometheus_ssh_exporter_container_http_host_bind_port: ''
+# A list of extra arguments to pass to the ssh_exporter process
+prometheus_ssh_exporter_process_extra_arguments: []
+
+# List of systemd services that prometheus-ssh-exporter.service depends on
+prometheus_ssh_exporter_systemd_required_services_list: "{{ prometheus_ssh_exporter_systemd_required_services_list_default + prometheus_ssh_exporter_systemd_required_services_list_auto + prometheus_ssh_exporter_systemd_required_services_list_custom }}"
+prometheus_ssh_exporter_systemd_required_services_list_default: "{{ [devture_systemd_docker_base_docker_service_name] if devture_systemd_docker_base_docker_service_name else [] }}"
+prometheus_ssh_exporter_systemd_required_services_list_auto: []
+prometheus_ssh_exporter_systemd_required_services_list_custom: []
+
+# List of systemd services that prometheus-ssh-exporter.service wants
+prometheus_ssh_exporter_systemd_wanted_services_list: []
+
+# Default ssh exporter configuration template which covers the generic use case.
+# You can customize it by controlling the various variables inside it.
+#
+# For a more advanced customization, you can extend the default (see `prometheus_ssh_exporter_configuration_extension_yaml`)
+# or completely replace this variable with your own template.
+prometheus_ssh_exporter_configuration_yaml: "{{ lookup('template', 'templates/config.yaml.j2') }}"
+
+prometheus_ssh_exporter_configuration_extension_yaml: |
+  # Your custom YAML configuration for ssh exporter goes here.
+  # This configuration extends the default starting configuration (`prometheus_ssh_exporter_configuration_yaml`).
+  #
+  # You can override individual variables from the default configuration, or introduce new ones.
+  #
+  # If you need something more special, you can take full control by
+  # completely redefining `prometheus_ssh_exporter_configuration_yaml`.
+
+prometheus_ssh_exporter_configuration_extension: "{{ prometheus_ssh_exporter_configuration_extension_yaml | from_yaml if prometheus_ssh_exporter_configuration_extension_yaml | from_yaml is mapping else {} }}"
+
+# Holds the final borgmatic configuration (a combination of the default and its extension).
+# You most likely don't need to touch this variable. Instead, see `prometheus_ssh_exporter_configuration_yaml`.
+prometheus_ssh_exporter_configuration: "{{ prometheus_ssh_exporter_configuration_yaml | from_yaml | combine(prometheus_ssh_exporter_configuration_extension, recursive=True) }}"
