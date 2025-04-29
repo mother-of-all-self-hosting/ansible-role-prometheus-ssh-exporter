@@ -71,7 +71,9 @@ prometheus_ssh_exporter_container_network: "{{ prometheus_ssh_exporter_identifie
 # without exposing all other container services to that other reverse-proxy.
 #
 # For background, see: https://github.com/spantaleev/matrix-docker-ansible-deploy/issues/1498
-prometheus_ssh_exporter_container_additional_networks: []
+prometheus_ssh_exporter_container_additional_networks: "{{ prometheus_ssh_exporter_container_additional_networks_auto + prometheus_ssh_exporter_container_additional_networks_custom }}"
+prometheus_ssh_exporter_container_additional_networks_auto: []
+prometheus_ssh_exporter_container_additional_networks_custom: []
 
 # A list of extra arguments to pass to the container
 prometheus_ssh_exporter_container_extra_arguments: []
