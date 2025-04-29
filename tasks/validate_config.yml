@@ -17,6 +17,9 @@
     - {'old': 'prometheus_ssh_exporter_basicauth_password', 'new': '<superseded by prometheus_ssh_exporter_container_labels_metrics_middleware_basic_auth_users>'}
     - {'old': 'prometheus_ssh_exporter_basicauth_print', 'new': '<removed>'}
     - {'old': 'prometheus_ssh_exporter_basicauth_file_contents', 'new': '<removed>'}
+    - {'old': 'prometheus_ssh_exporter_docker_image', 'new': 'prometheus_ssh_exporter_container_image'}
+    - {'old': 'prometheus_ssh_exporter_docker_image_name_prefix', 'new': 'prometheus_ssh_exporter_container_image_registry_prefix_upstream_default'}
+    - {'old': 'prometheus_ssh_exporter_docker_image_force_pull', 'new': 'prometheus_ssh_exporter_container_image_force_pull'}
 
 - name: Fail if required prometheus-ssh-exporter settings not defined
   ansible.builtin.fail:
@@ -37,4 +40,3 @@
       when: "vars[item] == ''"
       with_items:
         - prometheus_ssh_exporter_container_labels_traefik_hostname
-

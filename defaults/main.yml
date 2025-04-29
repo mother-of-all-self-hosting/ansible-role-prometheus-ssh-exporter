@@ -1,5 +1,8 @@
-# SPDX-FileCopyrightText: 2023 Nikita Chernyi
-# SPDX-FileCopyrightText: 2024 Slavi Pantaleev
+# SPDX-FileCopyrightText: 2023 - 2024 Nikita Chernyi
+# SPDX-FileCopyrightText: 2023 - 2025 Slavi Pantaleev
+# SPDX-FileCopyrightText: 2024 Sergio Durigan Junior
+# SPDX-FileCopyrightText: 2025 MASH project contributors
+# SPDX-FileCopyrightText: 2025 Suguru Hirahara
 #
 # SPDX-License-Identifier: AGPL-3.0-or-later
 
@@ -16,9 +19,12 @@ prometheus_ssh_exporter_hostname: ''
 prometheus_ssh_exporter_path_prefix: "/metrics/ssh-exporter"
 
 prometheus_ssh_exporter_version: v1.5.0
-prometheus_ssh_exporter_docker_image: "{{ prometheus_ssh_exporter_docker_image_name_prefix }}treydock/ssh_exporter:{{ prometheus_ssh_exporter_version }}"
-prometheus_ssh_exporter_docker_image_name_prefix: "docker.io/"
-prometheus_ssh_exporter_docker_image_force_pull: "{{ prometheus_ssh_exporter_docker_image.endswith(':latest') }}"
+prometheus_ssh_exporter_container_image: "{{ prometheus_ssh_exporter_container_image_registry_prefix }}treydock/ssh_exporter:{{ prometheus_ssh_exporter_container_image_tag }}"
+prometheus_ssh_exporter_container_image_tag: "{{ prometheus_ssh_exporter_version }}"
+prometheus_ssh_exporter_container_image_registry_prefix: "{{ prometheus_ssh_exporter_container_image_registry_prefix_upstream }}"
+prometheus_ssh_exporter_container_image_registry_prefix_upstream: "{{ prometheus_ssh_exporter_container_image_registry_prefix_upstream_default }}"
+prometheus_ssh_exporter_container_image_registry_prefix_upstream_default: docker.io/
+prometheus_ssh_exporter_container_image_force_pull: "{{ prometheus_ssh_exporter_container_image.endswith(':latest') }}"
 
 # Default ssh exporter configuration template which covers the generic use case.
 # You can customize it by controlling the various variables inside it.
