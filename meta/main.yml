@@ -3,7 +3,7 @@ galaxy_info:
   company: etke.cc
   role_name: prometheus_ssh_exporter
   namespace: etkecc
-  description: prometheus ssh exporter role
+  description: Prometheus SSH exporter role
   platforms:
     - name: Debian
       versions:

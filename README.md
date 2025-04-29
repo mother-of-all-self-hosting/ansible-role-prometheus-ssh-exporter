@@ -1,3 +1,9 @@
+<!--
+SPDX-FileCopyrightText: 2023 Nikita Chernyi
+
+SPDX-License-Identifier: AGPL-3.0-or-later
+-->
+
 # prometheus_ssh_exporter
 
 This is an [Ansible](https://www.ansible.com/) role which installs [Prometheus SSH exporter](https://github.com/treydock/ssh_exporter) to run as a [Docker](https://www.docker.com/) container wrapped in a systemd service.
