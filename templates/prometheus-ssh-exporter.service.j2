@@ -32,7 +32,7 @@ ExecStartPre={{ devture_systemd_docker_base_host_command_docker }} create \
       --read-only \
       --network={{ prometheus_ssh_exporter_container_network }} \
       {% if prometheus_ssh_exporter_container_http_host_bind_port %}
-      -p {{ prometheus_ssh_exporter_container_http_host_bind_port }}:9312 \
+      -p {{ prometheus_ssh_exporter_container_http_host_bind_port }}:{{ prometheus_ssh_exporter_container_http_port }} \
       {% endif %}
       --pid=host \
       --label-file={{ prometheus_ssh_exporter_config_path }}/labels \
