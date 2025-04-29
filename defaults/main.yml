@@ -120,6 +120,6 @@ prometheus_ssh_exporter_configuration_extension_yaml: |
 
 prometheus_ssh_exporter_configuration_extension: "{{ prometheus_ssh_exporter_configuration_extension_yaml | from_yaml if prometheus_ssh_exporter_configuration_extension_yaml | from_yaml is mapping else {} }}"
 
-# Holds the final borgmatic configuration (a combination of the default and its extension).
+# Holds the final SSH exporter configuration (a combination of the default and its extension).
 # You most likely don't need to touch this variable. Instead, see `prometheus_ssh_exporter_configuration_yaml`.
 prometheus_ssh_exporter_configuration: "{{ prometheus_ssh_exporter_configuration_yaml | from_yaml | combine(prometheus_ssh_exporter_configuration_extension, recursive=True) }}"
