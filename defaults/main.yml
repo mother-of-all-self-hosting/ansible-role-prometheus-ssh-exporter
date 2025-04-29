@@ -102,7 +102,7 @@ prometheus_ssh_exporter_systemd_required_services_list_custom: []
 # List of systemd services that prometheus-ssh-exporter.service wants
 prometheus_ssh_exporter_systemd_wanted_services_list: []
 
-# Default ssh exporter configuration template which covers the generic use case.
+# Default SSH exporter configuration template which covers the generic use case.
 # You can customize it by controlling the various variables inside it.
 #
 # For a more advanced customization, you can extend the default (see `prometheus_ssh_exporter_configuration_extension_yaml`)
@@ -110,7 +110,7 @@ prometheus_ssh_exporter_systemd_wanted_services_list: []
 prometheus_ssh_exporter_configuration_yaml: "{{ lookup('template', 'templates/config.yaml.j2') }}"
 
 prometheus_ssh_exporter_configuration_extension_yaml: |
-  # Your custom YAML configuration for ssh exporter goes here.
+  # Your custom YAML configuration for SSH exporter goes here.
   # This configuration extends the default starting configuration (`prometheus_ssh_exporter_configuration_yaml`).
   #
   # You can override individual variables from the default configuration, or introduce new ones.
