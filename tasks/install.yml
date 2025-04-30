@@ -5,17 +5,6 @@
 
 ---
 
-- name: Ensure prometheus-ssh-exporter image is pulled
-  community.docker.docker_image:
-    name: "{{ prometheus_ssh_exporter_container_image }}"
-    source: "{{ 'pull' if ansible_version.major > 2 or ansible_version.minor > 7 else omit }}"
-    force_source: "{{ prometheus_ssh_exporter_container_image_force_pull if ansible_version.major > 2 or ansible_version.minor >= 8 else omit }}"
-    force: "{{ omit if ansible_version.major > 2 or ansible_version.minor >= 8 else prometheus_ssh_exporter_container_image_force_pull }}"
-  register: result
-  retries: "{{ devture_playbook_help_container_retries_count }}"
-  delay: "{{ devture_playbook_help_container_retries_delay }}"
-  until: result is not failed
-
 - name: Ensure prometheus-ssh-exporter paths exist
   ansible.builtin.file:
     path: "{{ item }}"
@@ -27,7 +16,7 @@
     - "{{ prometheus_ssh_exporter_base_path }}"
     - "{{ prometheus_ssh_exporter_config_path }}"
 
-- name: Ensure prometheus-ssh-exporter labels file is created
+- name: Ensure prometheus-ssh-exporter labels file installed
   ansible.builtin.template:
     src: "{{ role_path }}/templates/labels.j2"
     dest: "{{ prometheus_ssh_exporter_config_path }}/labels"
@@ -43,6 +32,17 @@
     group: "{{ prometheus_ssh_exporter_gid }}"
     mode: 0640
 
+- name: Ensure prometheus-ssh-exporter image is pulled
+  community.docker.docker_image:
+    name: "{{ prometheus_ssh_exporter_container_image }}"
+    source: "{{ 'pull' if ansible_version.major > 2 or ansible_version.minor > 7 else omit }}"
+    force_source: "{{ prometheus_ssh_exporter_container_image_force_pull if ansible_version.major > 2 or ansible_version.minor >= 8 else omit }}"
+    force: "{{ omit if ansible_version.major > 2 or ansible_version.minor >= 8 else prometheus_ssh_exporter_container_image_force_pull }}"
+  register: result
+  retries: "{{ devture_playbook_help_container_retries_count }}"
+  delay: "{{ devture_playbook_help_container_retries_delay }}"
+  until: result is not failed
+
 - name: Ensure prometheus-ssh-exporter container network is created
   community.general.docker_network:
     enable_ipv6: "{{ devture_systemd_docker_base_ipv6_enabled }}"
@@ -50,7 +50,7 @@
     driver: bridge
     driver_options: "{{ devture_systemd_docker_base_container_networks_driver_options }}"
 
-- name: Ensure prometheus-ssh-exporter systemd service installed
+- name: Ensure prometheus-ssh-exporter systemd service is present
   ansible.builtin.template:
     src: "{{ role_path }}/templates/systemd/prometheus-ssh-exporter.service.j2"
     dest: "{{ devture_systemd_docker_base_systemd_path }}/{{ prometheus_ssh_exporter_identifier }}.service"
