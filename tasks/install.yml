@@ -49,6 +49,7 @@
     name: "{{ prometheus_ssh_exporter_container_network }}"
     driver: bridge
     driver_options: "{{ devture_systemd_docker_base_container_networks_driver_options }}"
+  when: prometheus_ssh_exporter_container_network != 'host'
 
 - name: Ensure prometheus-ssh-exporter systemd service is present
   ansible.builtin.template:
