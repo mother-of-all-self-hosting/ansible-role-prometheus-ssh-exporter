@@ -1,28 +1,30 @@
 # SPDX-FileCopyrightText: 2023 Nikita Chernyi
+# SPDX-FileCopyrightText: 2023 Slavi Pantaleev
 #
 # SPDX-License-Identifier: AGPL-3.0-or-later
 
 ---
 
-- name: Ensure prometheus-ssh-exporter is installed
+- name: Perform prometheus-ssh-exporter installation tasks
+  block:
+    - name: Validate prometheus-ssh-exporter configuration
+      when: prometheus_ssh_exporter_enabled | bool
+      ansible.builtin.include_tasks: "{{ role_path }}/tasks/validate_config.yml"
+
+    - name: Install prometheus-ssh-exporter
+      when: prometheus_ssh_exporter_enabled | bool
+      ansible.builtin.include_tasks: "{{ role_path }}/tasks/install.yml"
   tags:
     - setup-all
     - setup-prometheus-ssh-exporter
     - install-all
     - install-prometheus-ssh-exporter
-  block:
-    - name: Include prometheus-ssh-exporter config validation tasks
-      when: prometheus_ssh_exporter_enabled | bool
-      ansible.builtin.include_tasks: "{{ role_path }}/tasks/validate_config.yml"
-    - name: Include prometheus-ssh-exporter installation tasks
-      when: prometheus_ssh_exporter_enabled | bool
-      ansible.builtin.include_tasks: "{{ role_path }}/tasks/install.yml"
 
-- name: Ensure prometheus-ssh-exporter is removed
+- name: Perform prometheus-ssh-exporter uninstallation tasks
+  block:
+    - name: Uninstall prometheus-ssh-exporter
+      when: not prometheus_ssh_exporter_enabled | bool
+      ansible.builtin.include_tasks: "{{ role_path }}/tasks/uninstall.yml"
   tags:
     - setup-all
     - setup-prometheus-ssh-exporter
-  block:
-    - name: Include prometheus-ssh-exporter removal tasks
-      when: not prometheus_ssh_exporter_enabled | bool
-      ansible.builtin.include_tasks: "{{ role_path }}/tasks/uninstall.yml"
