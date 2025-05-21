@@ -24,7 +24,7 @@
     group: "{{ prometheus_ssh_exporter_gid }}"
     mode: 0640
 
-- name: Ensure prometheus-ssh-exporter config is created
+- name: Ensure prometheus-ssh-exporter configuration file installed
   ansible.builtin.copy:
     content: "{{ prometheus_ssh_exporter_configuration | to_nice_yaml(indent=2, width=999999) }}"
     dest: "{{ prometheus_ssh_exporter_config_path }}/config.yaml"
