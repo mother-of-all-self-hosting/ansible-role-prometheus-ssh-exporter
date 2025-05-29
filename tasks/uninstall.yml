@@ -8,7 +8,7 @@
     path: "{{ devture_systemd_docker_base_systemd_path }}/{{ prometheus_ssh_exporter_identifier }}.service"
   register: prometheus_ssh_exporter_service_stat
 
-- name: Ensure prometheus-ssh-exporter is removed
+- name: Uninstall prometheus-ssh-exporter systemd services and files
   when: prometheus_ssh_exporter_service_stat.stat.exists | bool
   block:
     - name: Ensure prometheus-ssh-exporter systemd service is stopped
