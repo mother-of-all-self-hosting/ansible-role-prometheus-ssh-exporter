@@ -3,27 +3,27 @@
 # SPDX-License-Identifier: AGPL-3.0-or-later
 
 ---
-- name: Check existence of prometheus-ssh-exporter service
+- name: Check existence of Prometheus SSH exporter service
   ansible.builtin.stat:
     path: "{{ devture_systemd_docker_base_systemd_path }}/{{ prometheus_ssh_exporter_identifier }}.service"
   register: prometheus_ssh_exporter_service_stat
 
-- name: Uninstall prometheus-ssh-exporter systemd services and files
+- name: Uninstall Prometheus SSH exporter systemd services and files
   when: prometheus_ssh_exporter_service_stat.stat.exists | bool
   block:
-    - name: Ensure prometheus-ssh-exporter systemd service is stopped
+    - name: Ensure Prometheus SSH exporter systemd service is stopped
       ansible.builtin.service:
         name: "{{ prometheus_ssh_exporter_identifier }}"
         state: stopped
         enabled: false
         daemon_reload: true
 
-    - name: Ensure prometheus-ssh-exporter service does not exist
+    - name: Ensure Prometheus SSH exporter service does not exist
       ansible.builtin.file:
         path: "{{ devture_systemd_docker_base_systemd_path }}/{{ prometheus_ssh_exporter_identifier }}.service"
         state: absent
 
-    - name: Ensure prometheus-ssh-exporter path does not exist
+    - name: Ensure Prometheus SSH exporter path does not exist
       ansible.builtin.file:
         path: "{{ prometheus_ssh_exporter_base_path }}"
         state: absent

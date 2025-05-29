@@ -21,7 +21,7 @@
     - { "old": "prometheus_ssh_exporter_docker_image_name_prefix", "new": "prometheus_ssh_exporter_container_image_registry_prefix_upstream_default" }
     - { "old": "prometheus_ssh_exporter_docker_image_force_pull", "new": "prometheus_ssh_exporter_container_image_force_pull" }
 
-- name: Fail if required prometheus-ssh-exporter settings not defined
+- name: Fail if required Prometheus SSH exporter settings not defined
   ansible.builtin.fail:
     msg: >-
       You need to define a required configuration setting (`{{ item }}`).
@@ -34,7 +34,7 @@
 - name: Run if Traefik is enabled
   when: prometheus_ssh_exporter_container_labels_traefik_enabled | bool
   block:
-    - name: Fail if required prometheus-ssh-exporter Traefik settings not defined
+    - name: Fail if required Prometheus SSH exporter Traefik settings not defined
       ansible.builtin.fail:
         msg: >-
           You need to define a required configuration setting (`{{ item }}`).
