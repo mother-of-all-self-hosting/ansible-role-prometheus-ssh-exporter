@@ -5,6 +5,7 @@
 
 ---
 - name: Perform Prometheus SSH exporter installation tasks
+  when: prometheus_ssh_exporter_enabled | bool
   tags:
     - setup-all
     - setup-prometheus-ssh-exporter
@@ -12,17 +13,15 @@
     - install-prometheus-ssh-exporter
   block:
     - name: Validate Prometheus SSH exporter configuration
-      when: prometheus_ssh_exporter_enabled | bool
       ansible.builtin.include_tasks: "{{ role_path }}/tasks/validate_config.yml"
     - name: Install Prometheus SSH exporter
-      when: prometheus_ssh_exporter_enabled | bool
       ansible.builtin.include_tasks: "{{ role_path }}/tasks/install.yml"
 
 - name: Perform Prometheus SSH exporter uninstallation tasks
+  when: not prometheus_ssh_exporter_enabled | bool
   tags:
     - setup-all
     - setup-prometheus-ssh-exporter
   block:
     - name: Uninstall Prometheus SSH exporter
-      when: not prometheus_ssh_exporter_enabled | bool
       ansible.builtin.include_tasks: "{{ role_path }}/tasks/uninstall.yml"
