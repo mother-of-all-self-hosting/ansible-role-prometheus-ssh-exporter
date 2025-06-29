@@ -43,7 +43,7 @@
   until: result is not failed
 
 - name: Ensure Prometheus SSH exporter container network is created
-  community.general.docker_network:
+  community.docker.docker_network:
     enable_ipv6: "{{ devture_systemd_docker_base_ipv6_enabled }}"
     name: "{{ prometheus_ssh_exporter_container_network }}"
     driver: bridge
