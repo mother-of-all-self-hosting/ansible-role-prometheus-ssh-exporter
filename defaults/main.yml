@@ -100,8 +100,11 @@ prometheus_ssh_exporter_systemd_required_services_list_default: "{{ [devture_sys
 prometheus_ssh_exporter_systemd_required_services_list_auto: []
 prometheus_ssh_exporter_systemd_required_services_list_custom: []
 
-# List of systemd services that Prometheus SSH exporter systemd service wants
-prometheus_ssh_exporter_systemd_wanted_services_list: []
+# List of systemd services that the Prometheus SSH exporter systemd service wants
+prometheus_ssh_exporter_systemd_wanted_services_list: "{{ prometheus_ssh_exporter_systemd_wanted_services_list_default + prometheus_ssh_exporter_systemd_wanted_services_list_auto + prometheus_ssh_exporter_systemd_wanted_services_list_custom }}"
+prometheus_ssh_exporter_systemd_wanted_services_list_default: []
+prometheus_ssh_exporter_systemd_wanted_services_list_auto: []
+prometheus_ssh_exporter_systemd_wanted_services_list_custom: []
 
 # Default SSH exporter configuration template which covers the generic use case.
 # You can customize it by controlling the various variables inside it.
