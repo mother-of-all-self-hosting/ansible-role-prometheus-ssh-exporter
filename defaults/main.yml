@@ -89,7 +89,9 @@ prometheus_ssh_exporter_container_labels_traefik_tls_certResolver: default  # no
 prometheus_ssh_exporter_container_labels_additional_labels: ''
 
 # A list of extra arguments to pass to the container
-prometheus_ssh_exporter_container_extra_arguments: []
+prometheus_ssh_exporter_container_extra_arguments: "{{ prometheus_ssh_exporter_container_extra_arguments_auto + prometheus_ssh_exporter_container_extra_arguments_custom }}"
+prometheus_ssh_exporter_container_extra_arguments_auto: []
+prometheus_ssh_exporter_container_extra_arguments_custom: []
 
 # A list of extra arguments to pass to the ssh_exporter process
 prometheus_ssh_exporter_process_extra_arguments: []
