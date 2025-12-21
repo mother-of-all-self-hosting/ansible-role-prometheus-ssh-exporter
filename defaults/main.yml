@@ -24,7 +24,7 @@ prometheus_ssh_exporter_gid: ""
 # The hostname at which Prometheus SSH exporter is served. You don't need to configure it if you're not exposing this.
 prometheus_ssh_exporter_hostname: ""
 
-# The path at which Prometheus SSH exporter is exposed. You don't need to configure it if you're not exposing this.
+# The path at which Prometheus SSH exporter is served. You don't need to configure it if you're not exposing this.
 # This value must either be `/` or not end with a slash.
 prometheus_ssh_exporter_path_prefix: "/metrics/ssh-exporter"
 
