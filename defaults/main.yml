@@ -18,11 +18,11 @@ prometheus_ssh_exporter_config_path: "{{ prometheus_ssh_exporter_base_path }}/co
 # renovate: datasource=docker depName=treydock/ssh_exporter versioning=semver
 prometheus_ssh_exporter_version: v1.5.0
 
-prometheus_ssh_exporter_uid: ''
-prometheus_ssh_exporter_gid: ''
+prometheus_ssh_exporter_uid: ""
+prometheus_ssh_exporter_gid: ""
 
 # The hostname at which Prometheus SSH exporter is served. You don't need to configure it if you're not exposing this.
-prometheus_ssh_exporter_hostname: ''
+prometheus_ssh_exporter_hostname: ""
 
 # The path at which Prometheus SSH exporter is exposed. You don't need to configure it if you're not exposing this.
 # This value must either be `/` or not end with a slash.
@@ -38,7 +38,7 @@ prometheus_ssh_exporter_container_image_force_pull: "{{ prometheus_ssh_exporter_
 # Controls whether the Prometheus SSH exporter container exposes its HTTP port (tcp/9100 in the container).
 #
 # Takes an "<ip>:<port>" value (e.g. "127.0.0.1:9100"), just a port number or empty string to not expose.
-prometheus_ssh_exporter_container_http_host_bind_port: ''
+prometheus_ssh_exporter_container_http_host_bind_port: ""
 
 # The base container network
 #
