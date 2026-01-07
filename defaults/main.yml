@@ -85,11 +85,11 @@ prometheus_ssh_exporter_container_labels_traefik_tls_certResolver: default  # no
 #
 # Example:
 # prometheus_ssh_exporter_container_labels_additional_labels_custom: |
-#   my.label=1
-#   another.label="here"
-prometheus_ssh_exporter_container_labels_additional_labels: "{{ prometheus_ssh_exporter_container_labels_additional_labels_auto | combine(prometheus_ssh_exporter_container_labels_additional_labels_custom) }}"
-prometheus_ssh_exporter_container_labels_additional_labels_auto: {}
-prometheus_ssh_exporter_container_labels_additional_labels_custom: {}
+#   - my.label=1
+#   - another.label="here"
+prometheus_ssh_exporter_container_labels_additional_labels: "{{ prometheus_ssh_exporter_container_labels_additional_labels_auto + prometheus_ssh_exporter_container_labels_additional_labels_custom }}"
+prometheus_ssh_exporter_container_labels_additional_labels_auto: []
+prometheus_ssh_exporter_container_labels_additional_labels_custom: []
 
 # A list of extra arguments to pass to the container (`docker create` command)
 prometheus_ssh_exporter_container_extra_arguments: "{{ prometheus_ssh_exporter_container_extra_arguments_auto + prometheus_ssh_exporter_container_extra_arguments_custom }}"
