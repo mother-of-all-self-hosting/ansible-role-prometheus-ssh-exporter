@@ -1,8 +1,8 @@
-# SPDX-FileCopyrightText: 2023 - 2024 Nikita Chernyi
-# SPDX-FileCopyrightText: 2023 - 2025 Slavi Pantaleev
+# SPDX-FileCopyrightText: 2023, 2024 Nikita Chernyi
+# SPDX-FileCopyrightText: 2023-2025 Slavi Pantaleev
 # SPDX-FileCopyrightText: 2024 Sergio Durigan Junior
 # SPDX-FileCopyrightText: 2025 MASH project contributors
-# SPDX-FileCopyrightText: 2025 Suguru Hirahara
+# SPDX-FileCopyrightText: 2025, 2026 Suguru Hirahara
 #
 # SPDX-License-Identifier: AGPL-3.0-or-later
 
@@ -132,3 +132,9 @@ prometheus_ssh_exporter_configuration_extension: "{{ prometheus_ssh_exporter_con
 # Holds the final SSH exporter configuration (a combination of the default and its extension).
 # You most likely don't need to touch this variable. Instead, see `prometheus_ssh_exporter_configuration_yaml`.
 prometheus_ssh_exporter_configuration: "{{ prometheus_ssh_exporter_configuration_yaml | from_yaml | combine(prometheus_ssh_exporter_configuration_extension, recursive=True) }}"
+
+# Specify the timezone
+prometheus_ssh_exporter_environment_variables_tz: UTC
+
+# Additional environment variables.
+prometheus_ssh_exporter_environment_variables_additional_variables: ""

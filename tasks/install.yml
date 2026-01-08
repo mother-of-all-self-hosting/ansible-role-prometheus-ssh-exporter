@@ -1,5 +1,6 @@
 # SPDX-FileCopyrightText: 2023 Nikita Chernyi
 # SPDX-FileCopyrightText: 2024 Slavi Pantaleev
+# SPDX-FileCopyrightText: 2026 Suguru Hirahara
 #
 # SPDX-License-Identifier: AGPL-3.0-or-later
 
@@ -15,13 +16,16 @@
     - "{{ prometheus_ssh_exporter_base_path }}"
     - "{{ prometheus_ssh_exporter_config_path }}"
 
-- name: Ensure Prometheus SSH exporter labels file installed
+- name: Ensure Prometheus SSH exporter support files installed
   ansible.builtin.template:
-    src: "{{ role_path }}/templates/labels.j2"
-    dest: "{{ prometheus_ssh_exporter_config_path }}/labels"
+    src: "{{ role_path }}/templates/{{ item }}.j2"
+    dest: "{{ prometheus_ssh_exporter_base_path }}/{{ item }}"
     mode: "0640"
     owner: "{{ prometheus_ssh_exporter_uid }}"
     group: "{{ prometheus_ssh_exporter_gid }}"
+  with_items:
+    - env
+    - labels
 
 - name: Ensure Prometheus SSH exporter configuration file installed
   ansible.builtin.copy:
