@@ -19,17 +19,17 @@
   ansible.builtin.template:
     src: "{{ role_path }}/templates/labels.j2"
     dest: "{{ prometheus_ssh_exporter_config_path }}/labels"
+    mode: "0640"
     owner: "{{ prometheus_ssh_exporter_uid }}"
     group: "{{ prometheus_ssh_exporter_gid }}"
-    mode: "0640"
 
 - name: Ensure Prometheus SSH exporter configuration file installed
   ansible.builtin.copy:
     content: "{{ prometheus_ssh_exporter_configuration | to_nice_yaml(indent=2, width=999999) }}"
     dest: "{{ prometheus_ssh_exporter_config_path }}/config.yaml"
+    mode: "0640"
     owner: "{{ prometheus_ssh_exporter_uid }}"
     group: "{{ prometheus_ssh_exporter_gid }}"
-    mode: "0640"
 
 - name: Ensure Prometheus SSH exporter container image is pulled via community.docker.docker_image
   when: devture_systemd_docker_base_container_image_pull_method == 'ansible-module'
