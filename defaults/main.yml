@@ -69,7 +69,7 @@ prometheus_ssh_exporter_container_additional_networks_custom: []
 # prometheus_ssh_exporter_container_labels_traefik_enabled controls whether labels to assist a Traefik reverse-proxy will be attached to the container.
 # See `../templates/labels.j2` for details.
 #
-# To inject your own other container labels, see `prometheus_ssh_exporter_container_labels_additional_labels`.
+# To inject your own other container labels, see `prometheus_ssh_exporter_container_labels_additional_labels_custom`.
 prometheus_ssh_exporter_container_labels_traefik_enabled: "{{ true if prometheus_ssh_exporter_hostname else false }}"
 prometheus_ssh_exporter_container_labels_traefik_docker_network: "{{ prometheus_ssh_exporter_container_network }}"
 prometheus_ssh_exporter_container_labels_traefik_hostname: "{{ prometheus_ssh_exporter_hostname }}"
