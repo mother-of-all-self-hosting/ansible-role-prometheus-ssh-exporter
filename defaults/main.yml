@@ -96,8 +96,11 @@ prometheus_ssh_exporter_container_extra_arguments: "{{ prometheus_ssh_exporter_c
 prometheus_ssh_exporter_container_extra_arguments_auto: []
 prometheus_ssh_exporter_container_extra_arguments_custom: []
 
-# A list of extra arguments to pass to the ssh_exporter process
-prometheus_ssh_exporter_process_extra_arguments: []
+# A list of extra arguments to pass to the Prometheus SSH exporter process
+# Example: ['--SOME_ARGUMENT']
+prometheus_ssh_exporter_process_extra_arguments: "{{ prometheus_ssh_exporter_process_extra_arguments_auto + prometheus_ssh_exporter_process_extra_arguments_custom }}"
+prometheus_ssh_exporter_process_extra_arguments_auto: []
+prometheus_ssh_exporter_process_extra_arguments_custom: []
 
 # List of systemd services that Prometheus SSH exporter systemd service depends on
 prometheus_ssh_exporter_systemd_required_services_list: "{{ prometheus_ssh_exporter_systemd_required_services_list_default + prometheus_ssh_exporter_systemd_required_services_list_auto + prometheus_ssh_exporter_systemd_required_services_list_custom }}"
