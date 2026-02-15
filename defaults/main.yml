@@ -47,6 +47,9 @@ prometheus_ssh_exporter_container_image_force_pull: "{{ prometheus_ssh_exporter_
 # For now, we'll live with that, until someone develops a better solution.
 prometheus_ssh_exporter_container_network: "{{ prometheus_ssh_exporter_identifier }}"
 
+# Control if the container network is deleted on uninstalling.
+prometheus_ssh_exporter_container_network_deletion_enabled: true
+
 # Specify how the container publishes its HTTP port (as defined by `prometheus_ssh_exporter_container_http_port`).
 #
 # Takes an "<ip>:<port>" or "<port>" value (e.g. "127.0.0.1:9100"), just a port number or empty string to not expose.
