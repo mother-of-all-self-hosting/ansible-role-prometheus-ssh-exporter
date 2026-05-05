@@ -19,7 +19,7 @@
     - { "old": "prometheus_ssh_exporter_basicauth_file_contents", "new": "<removed>" }
     - { "old": "prometheus_ssh_exporter_docker_image", "new": "prometheus_ssh_exporter_container_image" }
     - { "old": "prometheus_ssh_exporter_docker_image_name_prefix", "new": "prometheus_ssh_exporter_container_image_registry_prefix_upstream_default" }
-    - { "old": "prometheus_ssh_exporter_docker_image_force_pull", "new": "prometheus_ssh_exporter_container_image_force_pull" }
+    - { "old": "prometheus_ssh_exporter_container_image_force_pull", "new": "<removed> (the new community.docker.docker_image_pull module handles this natively)" }
 
 - name: Fail if required Prometheus SSH exporter settings not defined
   ansible.builtin.fail:

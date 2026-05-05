@@ -33,7 +33,6 @@ prometheus_ssh_exporter_container_image_tag: "{{ prometheus_ssh_exporter_version
 prometheus_ssh_exporter_container_image_registry_prefix: "{{ prometheus_ssh_exporter_container_image_registry_prefix_upstream }}"
 prometheus_ssh_exporter_container_image_registry_prefix_upstream: "{{ prometheus_ssh_exporter_container_image_registry_prefix_upstream_default }}"
 prometheus_ssh_exporter_container_image_registry_prefix_upstream_default: docker.io/
-prometheus_ssh_exporter_container_image_force_pull: "{{ prometheus_ssh_exporter_container_image.endswith(':latest') }}"
 
 # The base container network
 #
