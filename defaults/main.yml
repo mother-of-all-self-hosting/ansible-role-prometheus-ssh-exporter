@@ -11,7 +11,7 @@
 
 prometheus_ssh_exporter_enabled: true
 
-prometheus_ssh_exporter_identifier: Prometheus SSH exporter
+prometheus_ssh_exporter_identifier: prometheus-ssh-exporter
 prometheus_ssh_exporter_base_path: "/{{ prometheus_ssh_exporter_identifier }}"
 prometheus_ssh_exporter_config_path: "{{ prometheus_ssh_exporter_base_path }}/config"
 
