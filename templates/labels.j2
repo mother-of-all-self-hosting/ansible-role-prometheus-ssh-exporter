@@ -1,6 +1,7 @@
 {#
 SPDX-FileCopyrightText: 2023 Nikita Chernyi
-SPDX-FileCopyrightText: 2024 Slavi Pantaleev
+SPDX-FileCopyrightText: 2023-2024 Slavi Pantaleev
+SPDX-FileCopyrightText: 2025-2026 Suguru Hirahara
 
 SPDX-License-Identifier: AGPL-3.0-or-later
 #}
@@ -23,7 +24,9 @@ traefik.http.middlewares.{{ prometheus_ssh_exporter_identifier }}-basic-auth.bas
 traefik.http.middlewares.{{ prometheus_ssh_exporter_identifier }}-replacepath.replacepath.path=/ssh
 
 traefik.http.routers.{{ prometheus_ssh_exporter_identifier }}.rule={{ prometheus_ssh_exporter_container_labels_traefik_rule }}
-
+{% if prometheus_ssh_exporter_container_labels_traefik_priority | int > 0 %}
+traefik.http.routers.{{ prometheus_ssh_exporter_identifier }}.priority={{ prometheus_ssh_exporter_container_labels_traefik_priority }}
+{% endif %}
 traefik.http.routers.{{ prometheus_ssh_exporter_identifier }}.service={{ prometheus_ssh_exporter_identifier }}
 {% if middlewares | length > 0 %}
 traefik.http.routers.{{ prometheus_ssh_exporter_identifier }}.middlewares={{ middlewares | join(',') }}
