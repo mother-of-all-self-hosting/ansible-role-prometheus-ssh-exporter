@@ -77,6 +77,7 @@ prometheus_ssh_exporter_container_labels_traefik_docker_network: "{{ prometheus_
 prometheus_ssh_exporter_container_labels_traefik_hostname: "{{ prometheus_ssh_exporter_hostname }}"
 # The path prefix must either be `/` or not end with a slash (e.g. `/metrics`).
 prometheus_ssh_exporter_container_labels_traefik_path_prefix: "{{ prometheus_ssh_exporter_path_prefix }}"
+prometheus_ssh_exporter_container_labels_traefik_rule: "Host(`{{ prometheus_ssh_exporter_container_labels_traefik_hostname }}`){% if prometheus_ssh_exporter_container_labels_traefik_path_prefix != '/' %} && PathPrefix(`{{ prometheus_ssh_exporter_container_labels_traefik_path_prefix }}`){% endif %}"
 prometheus_ssh_exporter_container_labels_traefik_priority: 0
 prometheus_ssh_exporter_container_labels_traefik_entrypoints: web-secure
 prometheus_ssh_exporter_container_labels_traefik_tls: "{{ prometheus_ssh_exporter_container_labels_traefik_entrypoints != 'web' }}"
