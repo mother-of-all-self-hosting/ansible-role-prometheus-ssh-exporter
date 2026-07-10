@@ -80,6 +80,9 @@ prometheus_ssh_exporter_container_labels_traefik_path_prefix: "{{ prometheus_ssh
 prometheus_ssh_exporter_container_labels_traefik_entrypoints: web-secure
 prometheus_ssh_exporter_container_labels_traefik_tls: "{{ prometheus_ssh_exporter_container_labels_traefik_entrypoints != 'web' }}"
 prometheus_ssh_exporter_container_labels_traefik_tls_certResolver: default  # noqa var-naming
+prometheus_ssh_exporter_container_labels_metrics_middleware_basic_auth_enabled: false
+# See: https://doc.traefik.io/traefik/reference/routing-configuration/http/middlewares/basicauth/
+prometheus_ssh_exporter_container_labels_metrics_middleware_basic_auth_users: ""
 
 # prometheus_ssh_exporter_container_labels_additional_labels contains a multiline string with additional labels to add to the container label file.
 # See `../templates/labels.j2` for details.
