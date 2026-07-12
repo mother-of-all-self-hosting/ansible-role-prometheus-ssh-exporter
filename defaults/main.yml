@@ -16,7 +16,7 @@ prometheus_ssh_exporter_base_path: "/{{ prometheus_ssh_exporter_identifier }}"
 prometheus_ssh_exporter_config_path: "{{ prometheus_ssh_exporter_base_path }}/config"
 
 # renovate: datasource=docker depName=treydock/ssh_exporter versioning=semver
-prometheus_ssh_exporter_version: v1.6.0
+prometheus_ssh_exporter_version: v1.7.0
 
 prometheus_ssh_exporter_uid: ""
 prometheus_ssh_exporter_gid: ""
