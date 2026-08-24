@@ -34,8 +34,8 @@ ExecStartPre={{ devture_systemd_docker_base_host_command_docker }} create \
       -p {{ prometheus_ssh_exporter_container_http_host_bind_port }}:{{ prometheus_ssh_exporter_container_http_port }} \
       {% endif %}
       --pid=host \
-      --env-file={{ prometheus_ssh_exporter_config_path }}/env \
-      --label-file={{ prometheus_ssh_exporter_config_path }}/labels \
+      --env-file={{ prometheus_ssh_exporter_base_path }}/env \
+      --label-file={{ prometheus_ssh_exporter_base_path }}/labels \
       --mount type=bind,src=/,dst=/host,ro,bind-propagation=rslave \
       --mount type=bind,src={{ prometheus_ssh_exporter_config_path }}/config.yaml,dst=/ssh_exporter.yaml \
       {% for arg in prometheus_ssh_exporter_container_extra_arguments %}
