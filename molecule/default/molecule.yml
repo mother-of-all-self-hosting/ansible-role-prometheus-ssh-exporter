@@ -1,0 +1,140 @@
+# SPDX-FileCopyrightText: 2026 Slavi Pantaleev
+#
+# SPDX-License-Identifier: AGPL-3.0-or-later
+
+---
+dependency:
+  name: galaxy
+  options:
+    requirements-file: requirements.yml
+    force: true
+driver:
+  name: docker
+platforms:
+  - name: prometheus-ssh-exporter-${MOLECULE_DISTRO:-ubuntu2604}-default
+    image: "geerlingguy/docker-${MOLECULE_DISTRO:-ubuntu2604}-ansible:latest"
+    command: ${MOLECULE_DOCKER_COMMAND:-""}
+    volumes:
+      - /sys/fs/cgroup:/sys/fs/cgroup:rw
+    cgroupns_mode: host
+    privileged: true
+    pre_build_image: true
+provisioner:
+  name: ansible
+  config_options:
+    defaults:
+      callback_result_format: yaml
+  inventory:
+    group_vars:
+      all:
+        # Helper variables
+        prometheus_ssh_exporter_debug_service_enabled: false
+
+        # The port on the host that the exporter's web server is published on.
+        prometheus_ssh_exporter_molecule_http_bind_port: 9312
+
+        # The SSH server that this scenario probes. It is a real OpenSSH
+        # daemon, because that is what this exporter needs: it completes a full
+        # SSH transport handshake, authenticates, opens a session and runs a
+        # command in it. Nothing less answers it.
+        prometheus_ssh_exporter_molecule_target_image: lscr.io/linuxserver/openssh-server:10.3_p1-r0-ls233
+        prometheus_ssh_exporter_molecule_target_container_name: prometheus-ssh-exporter-molecule-default-target
+
+        # The port the image's sshd listens on. Not 22 - the image runs sshd
+        # unprivileged.
+        prometheus_ssh_exporter_molecule_target_ssh_port: 2222
+
+        # A port on the very same target container that nothing listens on,
+        # used as the negative half of the probe round-trip in verify.yml.
+        # Pointing at the same host is deliberate: it isolates "nothing is
+        # listening there" from "that host is unreachable".
+        prometheus_ssh_exporter_molecule_dead_port: 9
+
+        # The credentials the target container is created with, and which the
+        # probe modules below authenticate with.
+        prometheus_ssh_exporter_molecule_ssh_user: molecule
+        prometheus_ssh_exporter_molecule_ssh_password: molecule-password
+
+        # A throwaway container that verify.yml starts from the very same image
+        # the role runs, with no configuration file, as a negative control.
+        prometheus_ssh_exporter_molecule_baseline_container_name: prometheus-ssh-exporter-molecule-default-baseline
+
+        # The modules this scenario adds on top of the role's own through the
+        # configuration extension. Deliberately unlike anything the exporter
+        # would have without the file this role rendered.
+        prometheus_ssh_exporter_molecule_probe_module: molecule_ssh_probe
+        prometheus_ssh_exporter_molecule_truncating_module: molecule_ssh_probe_default_truncate
+
+        # Passed to the running process through
+        # prometheus_ssh_exporter_process_extra_arguments_custom below, and
+        # observed in verify.yml. See the comment there for why this number.
+        prometheus_ssh_exporter_molecule_output_truncate: 20
+
+        # Variables for Prometheus SSH exporter
+        prometheus_ssh_exporter_uid: 1000
+        prometheus_ssh_exporter_gid: 1000
+
+        # Set so that the role renders a non-trivial labels file, which
+        # verify.yml reads back off the running container. An empty hostname
+        # would leave the file with nothing in it to check.
+        prometheus_ssh_exporter_hostname: localhost
+
+        # The role does not publish the exporter's port by default (it is meant
+        # to be scraped from another container on the same network), so the
+        # scenario publishes it in order to reach it from the test host.
+        prometheus_ssh_exporter_container_http_host_bind_port: "127.0.0.1:{{ prometheus_ssh_exporter_molecule_http_bind_port }}"
+
+        # Pinned to a literal value, so that verify.yml has something to compare
+        # `docker inspect` output against, and so that converge.yml can attach
+        # the SSH target to the same network. The role derives this from
+        # prometheus_ssh_exporter_identifier by default, which cannot be
+        # resolved out of the role's defaults file on its own.
+        prometheus_ssh_exporter_container_network: prometheus-ssh-exporter-molecule-default
+
+        # `--collector.ssh.default-output-truncate` sets the length that
+        # `ssh_output` labels are cut to for modules which do not set
+        # `output_truncate` themselves. It is the only exporter flag whose
+        # effect is visible in a probe response, which is what makes it usable
+        # as evidence that the role's process arguments reached the command
+        # line the systemd unit builds.
+        prometheus_ssh_exporter_process_extra_arguments_custom:
+          - "--collector.ssh.default-output-truncate={{ prometheus_ssh_exporter_molecule_output_truncate }}"
+
+        # The image the role runs ships no configuration file of its own - it
+        # is a busybox base with the exporter binary in it, and the process
+        # exits immediately when it cannot read one. So the exporter answering
+        # at all already says the role's file arrived. What it does not say is
+        # whether the *contents* are the role's, which is what these modules
+        # are for: a probe answered through one of them can only have come from
+        # the configuration this role rendered.
+        #
+        # `command: hostname` is what makes the probe a real round-trip rather
+        # than a connection test. The exporter has to authenticate, open a
+        # session, run the command on the far end and read its output back -
+        # and that output is the target's own hostname, which the scenario
+        # pins, so `ssh_output` below carries a value that could only have come
+        # off the target.
+        #
+        # The second module is the same probe with `output_truncate` left
+        # unset, so that it takes its value from the process flag instead.
+        prometheus_ssh_exporter_configuration_extension_yaml: |
+          modules:
+            {{ prometheus_ssh_exporter_molecule_probe_module }}:
+              user: {{ prometheus_ssh_exporter_molecule_ssh_user }}
+              password: {{ prometheus_ssh_exporter_molecule_ssh_password }}
+              command: hostname
+              command_expect: {{ prometheus_ssh_exporter_molecule_target_container_name }}
+              output_metric: true
+              output_truncate: -1
+              timeout: 10
+            {{ prometheus_ssh_exporter_molecule_truncating_module }}:
+              user: {{ prometheus_ssh_exporter_molecule_ssh_user }}
+              password: {{ prometheus_ssh_exporter_molecule_ssh_password }}
+              command: hostname
+              output_metric: true
+              timeout: 10
+  env:
+    # Workaround for https://github.com/ansible/molecule/issues/4391
+    ANSIBLE_ROLES_PATH: ${MOLECULE_PROJECT_DIRECTORY}/..:/.ansible/roles:/usr/share/ansible/roles:/etc/ansible/roles:~/.ansible/roles
+verifier:
+  name: ansible

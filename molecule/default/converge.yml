@@ -1,0 +1,85 @@
+# SPDX-FileCopyrightText: 2026 Slavi Pantaleev
+#
+# SPDX-License-Identifier: AGPL-3.0-or-later
+
+---
+- name: Include roles for Prometheus SSH exporter Molecule tests
+  hosts: all
+  become: true
+  gather_facts: true
+  tasks:
+    - name: Include roles for Prometheus SSH exporter Molecule tests
+      ansible.builtin.include_role:
+        name: "{{ role_name }}"
+        public: true
+      loop:
+        - com.devture.ansible.role.playbook_help
+        - com.devture.ansible.role.systemd_docker_base
+        - "{{ lookup('env', 'MOLECULE_PROJECT_DIRECTORY') | basename }}"
+      loop_control:
+        loop_var: role_name
+
+- name: Ensure the Prometheus SSH exporter probe target is running
+  hosts: all
+  become: true
+  gather_facts: false
+  tasks:
+    # The SSH server the exporter is pointed at. It joins the container network
+    # the role created, which is how the exporter reaches it: by container name,
+    # resolved by that network's DNS. That keeps the probe entirely inside the
+    # test host while still exercising the real path - a TCP connection over the
+    # bridge, an SSH handshake, an authentication and a command run on the far
+    # end.
+    #
+    # `--hostname` is set to the container's own name so that the `hostname`
+    # command the probe runs returns a value this scenario knows in advance.
+    #
+    # `docker` is driven through the CLI rather than through community.docker,
+    # because the linting environment in CI has no collections installed.
+    - name: Determine whether the Prometheus SSH exporter probe target already exists
+      ansible.builtin.command:
+        argv:
+          - docker
+          - inspect
+          - "{{ prometheus_ssh_exporter_molecule_target_container_name }}"
+      register: prometheus_ssh_exporter_molecule_target_existing
+      changed_when: false
+      failed_when: false
+
+    - name: Ensure the Prometheus SSH exporter probe target image is pulled
+      when: prometheus_ssh_exporter_molecule_target_existing.rc != 0
+      ansible.builtin.command:
+        cmd: "docker pull {{ prometheus_ssh_exporter_molecule_target_image }}"
+      register: prometheus_ssh_exporter_molecule_target_pull
+      changed_when: "'Downloaded newer image' in prometheus_ssh_exporter_molecule_target_pull.stdout"
+      retries: 5
+      delay: 10
+      until: prometheus_ssh_exporter_molecule_target_pull is not failed
+
+    - name: Ensure the Prometheus SSH exporter probe target is started
+      when: prometheus_ssh_exporter_molecule_target_existing.rc != 0
+      ansible.builtin.command:
+        cmd: >-
+          docker run --detach
+          --name {{ prometheus_ssh_exporter_molecule_target_container_name }}
+          --hostname {{ prometheus_ssh_exporter_molecule_target_container_name }}
+          --network {{ prometheus_ssh_exporter_container_network }}
+          --env PASSWORD_ACCESS=true
+          --env USER_NAME={{ prometheus_ssh_exporter_molecule_ssh_user }}
+          --env USER_PASSWORD={{ prometheus_ssh_exporter_molecule_ssh_password }}
+          {{ prometheus_ssh_exporter_molecule_target_image }}
+      changed_when: true
+
+- name: Ensure Prometheus SSH exporter service is started
+  hosts: all
+  become: true
+  gather_facts: false
+  tasks:
+    - name: Ensure systemd daemon is reloaded
+      ansible.builtin.systemd_service:
+        daemon_reload: true
+
+    - name: Ensure Prometheus SSH exporter systemd service is started
+      ansible.builtin.systemd_service:
+        name: prometheus-ssh-exporter.service
+        state: started

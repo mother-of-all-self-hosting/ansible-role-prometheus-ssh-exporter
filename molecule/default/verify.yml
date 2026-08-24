@@ -1,0 +1,371 @@
+# SPDX-FileCopyrightText: 2026 Slavi Pantaleev
+#
+# SPDX-License-Identifier: AGPL-3.0-or-later
+
+---
+- name: Verify Prometheus SSH exporter
+  hosts: all
+  become: true
+  gather_facts: false
+
+  vars:
+    # Where the exporter answers on the test host.
+    prometheus_ssh_exporter_molecule_base_url: "http://127.0.0.1:{{ prometheus_ssh_exporter_molecule_http_bind_port }}"
+
+    # The probe endpoint, and the target it is aimed at: the SSH server
+    # converge.yml started on the container network the role created, addressed
+    # the way any other container on that network would address it.
+    prometheus_ssh_exporter_molecule_probe_url: "{{ prometheus_ssh_exporter_molecule_base_url }}/ssh"
+    prometheus_ssh_exporter_molecule_live_target: "{{ prometheus_ssh_exporter_molecule_target_container_name }}:{{ prometheus_ssh_exporter_molecule_target_ssh_port }}"
+    prometheus_ssh_exporter_molecule_dead_target: "{{ prometheus_ssh_exporter_molecule_target_container_name }}:{{ prometheus_ssh_exporter_molecule_dead_port }}"
+
+    # What `ssh_output` has to carry once the process flag has cut it down. The
+    # exporter keeps the first `output_truncate` characters, minus the three it
+    # spends on the ellipsis it appends.
+    prometheus_ssh_exporter_molecule_truncated_output: "{{ prometheus_ssh_exporter_molecule_target_container_name[:prometheus_ssh_exporter_molecule_output_truncate - 3] }}..."
+
+    # A module name that appears in neither the role's configuration template
+    # nor this scenario's extension.
+    prometheus_ssh_exporter_molecule_unknown_module: molecule_module_that_does_not_exist
+
+  tasks:
+    # The role is not included in this playbook, so its defaults are not in
+    # scope. Reading defaults/main.yml directly keeps the assertions below tied
+    # to the values that this role ships, with nothing to keep in sync in this
+    # scenario. include_vars reads from the controller.
+    #
+    # Loaded under a name of its own: variables loaded into the play outrank the
+    # scenario's inventory group_vars and would quietly undo everything the
+    # scenario configures. Only literal values may be read out of this namespace
+    # - anything the role derives from another variable comes back as an
+    # unrendered template here.
+    - name: Load the Prometheus SSH exporter role defaults
+      ansible.builtin.include_vars:
+        file: "{{ lookup('env', 'MOLECULE_PROJECT_DIRECTORY') }}/defaults/main.yml"
+        name: prometheus_ssh_exporter_defaults
+
+    # The truncation check further down is only evidence of anything if the
+    # target's hostname sits between the length this scenario asks for and the
+    # length the exporter would use on its own. Renaming the target container
+    # could silently move it out of that window and leave the check passing for
+    # the wrong reason, so the window is asserted rather than assumed.
+    #
+    # 50 is the exporter's built-in `--collector.ssh.default-output-truncate`.
+    - name: Assert the probe target name can tell a truncated output apart from a full one
+      ansible.builtin.assert:
+        that:
+          - prometheus_ssh_exporter_molecule_target_container_name | length > prometheus_ssh_exporter_molecule_output_truncate
+          - prometheus_ssh_exporter_molecule_target_container_name | length <= 50
+        fail_msg: >-
+          The probe target name is {{ prometheus_ssh_exporter_molecule_target_container_name | length }} characters long,
+          which cannot distinguish a truncation at {{ prometheus_ssh_exporter_molecule_output_truncate }} from the exporter's own default of 50
+        success_msg: "The probe target name is long enough to be truncated by the scenario's flag, but not by the exporter's own default"
+
+    - name: Wait for Prometheus SSH exporter service to become active (up to 180s)
+      ansible.builtin.systemd:
+        name: prometheus-ssh-exporter.service
+      register: prometheus_ssh_exporter_service
+      until: prometheus_ssh_exporter_service.status.ActiveState == 'active'
+      retries: 36
+      delay: 5
+
+    - name: Assert Prometheus SSH exporter service is active
+      ansible.builtin.assert:
+        that: prometheus_ssh_exporter_service.status.ActiveState == 'active'
+        fail_msg: "prometheus-ssh-exporter.service not active ({{ prometheus_ssh_exporter_service.status.ActiveState }})"
+        success_msg: "prometheus-ssh-exporter.service is active"
+
+    - name: Retrieve Prometheus SSH exporter service log for debugging
+      when: prometheus_ssh_exporter_debug_service_enabled | bool
+      ansible.builtin.command:
+        cmd: journalctl -xeu prometheus-ssh-exporter.service
+      changed_when: false
+
+    # Everything below talks to the exporter over its published port. This looks
+    # at the container itself, and is where the files the role rendered show up:
+    # the environment came from the `env` file through `--env-file`, and the
+    # labels from the `labels` file through `--label-file`. Both are read back
+    # here rather than off disk, so a unit pointing at a path where the role
+    # never wrote them cannot pass.
+    - name: Query the running Prometheus SSH exporter container
+      ansible.builtin.command:
+        argv:
+          - docker
+          - inspect
+          - "{{ prometheus_ssh_exporter_defaults.prometheus_ssh_exporter_identifier }}"
+      register: prometheus_ssh_exporter_inspect
+      changed_when: false
+
+    - name: Determine how the Prometheus SSH exporter container is set up
+      ansible.builtin.set_fact:
+        prometheus_ssh_exporter_container: "{{ prometheus_ssh_exporter_inspect.stdout | from_json | first }}"
+
+    - name: Assert the Prometheus SSH exporter container runs on the network the role configured
+      ansible.builtin.assert:
+        that:
+          - prometheus_ssh_exporter_container.State.Running | bool
+          - prometheus_ssh_exporter_container_network in prometheus_ssh_exporter_container.NetworkSettings.Networks.keys() | list
+        fail_msg: >-
+          The container is not running on {{ prometheus_ssh_exporter_container_network }}:
+          {{ prometheus_ssh_exporter_container.NetworkSettings.Networks.keys() | list }}
+        success_msg: "The container runs on {{ prometheus_ssh_exporter_container_network }}, as the role configured"
+
+    - name: Assert the role's env file reached the Prometheus SSH exporter container
+      ansible.builtin.assert:
+        that: >-
+          ('TZ=' ~ prometheus_ssh_exporter_defaults.prometheus_ssh_exporter_environment_variables_tz)
+          in prometheus_ssh_exporter_container.Config.Env
+        fail_msg: "The container's environment does not carry the role's TZ setting: {{ prometheus_ssh_exporter_container.Config.Env }}"
+        success_msg: "The container's environment carries the role's TZ setting, so --env-file found the file the role wrote"
+
+    - name: Assert the role's labels file reached the Prometheus SSH exporter container
+      ansible.builtin.assert:
+        that:
+          - prometheus_ssh_exporter_container.Config.Labels['traefik.enable'] == 'true'
+          - >-
+            prometheus_ssh_exporter_container.Config.Labels[
+              'traefik.http.services.' ~ prometheus_ssh_exporter_defaults.prometheus_ssh_exporter_identifier ~ '.loadbalancer.server.port'
+            ] == prometheus_ssh_exporter_defaults.prometheus_ssh_exporter_container_http_port | string
+        fail_msg: "The container does not carry the labels the role rendered: {{ prometheus_ssh_exporter_container.Config.Labels }}"
+        success_msg: "The container carries the labels the role rendered, so --label-file found the file the role wrote"
+
+    # The negative control, and the reason everything below is worth asserting.
+    #
+    # Unlike most exporters, this image ships no configuration of its own: it is
+    # a busybox base with the binary in it, and `--config.file` defaults to a
+    # relative `ssh_exporter.yaml` that is not there. Started with no arguments
+    # it therefore does not serve a thing - it exits immediately. So an exporter
+    # answering at all is already a statement that the role's configuration file
+    # was mounted where the process looks for it.
+    - name: Run the Prometheus SSH exporter image with no configuration file
+      ansible.builtin.command:
+        argv:
+          - docker
+          - run
+          - --rm
+          - --name
+          - "{{ prometheus_ssh_exporter_molecule_baseline_container_name }}"
+          - "{{ prometheus_ssh_exporter_container.Config.Image }}"
+      register: prometheus_ssh_exporter_baseline
+      changed_when: false
+      failed_when: false
+
+    - name: Assert the Prometheus SSH exporter image serves nothing without the role's configuration file
+      ansible.builtin.assert:
+        that:
+          - prometheus_ssh_exporter_baseline.rc != 0
+          - "'error reading config file' in prometheus_ssh_exporter_baseline.stderr"
+        fail_msg: >-
+          The image ran without the role's configuration file (rc={{ prometheus_ssh_exporter_baseline.rc }}):
+          {{ prometheus_ssh_exporter_baseline.stderr | default('no output') }}
+        success_msg: "The image exits without the role's configuration file, so the running exporter is running on that file"
+
+    # A systemd unit reaching "active" only means that `docker start` has not
+    # exited yet. This is the first thing the exporter process itself has to
+    # answer, so it is where a container that never got going shows up.
+    #
+    # Note that a 200 on its own says very little here: the exporter's landing
+    # page answers 200 for every path it does not recognize. The content is what
+    # makes this the metrics endpoint rather than that landing page.
+    - name: Wait for Prometheus SSH exporter to serve its own metrics (up to 10m)
+      ansible.builtin.uri:
+        url: "{{ prometheus_ssh_exporter_molecule_base_url }}/metrics"
+        method: GET
+        return_content: true
+      register: prometheus_ssh_exporter_metrics
+      until: prometheus_ssh_exporter_metrics.status == 200 and 'go_info{' in prometheus_ssh_exporter_metrics.content
+      retries: 120
+      delay: 5
+
+    # Stronger than any listing endpoint would be, because it is the probe
+    # handler itself refusing a module. The exporter has no endpoint that shows
+    # its configuration, so a module name is the only way to ask the running
+    # process what it loaded.
+    - name: Probe through a module that the role's configuration does not define
+      ansible.builtin.uri:
+        url: "{{ prometheus_ssh_exporter_molecule_probe_url }}?target={{ prometheus_ssh_exporter_molecule_live_target }}&module={{ prometheus_ssh_exporter_molecule_unknown_module }}"
+        method: GET
+        status_code: [404]
+        return_content: true
+      register: prometheus_ssh_exporter_unknown_module_probe
+
+    - name: Assert the Prometheus SSH exporter refuses a module it was never configured with
+      ansible.builtin.assert:
+        that:
+          - prometheus_ssh_exporter_unknown_module_probe.status == 404
+          - "'Unknown module' in prometheus_ssh_exporter_unknown_module_probe.content"
+        fail_msg: "The exporter accepted an unconfigured module: {{ prometheus_ssh_exporter_unknown_module_probe.content }}"
+        success_msg: "The exporter refuses a module it was never configured with"
+
+    # The other half of the check above, through `default` - a module which
+    # comes from the role's own `templates/config.yaml.j2` rather than from this
+    # scenario. It is accepted, which is what ties the role's own configuration
+    # template to the process that loaded it.
+    #
+    # It reports a failure, and is expected to: the role's default module
+    # authenticates with a private key at `/sshkey`, which nothing mounts.
+    # Reaching the collector at all is the point.
+    - name: Probe through the role's own default module
+      ansible.builtin.uri:
+        url: "{{ prometheus_ssh_exporter_molecule_probe_url }}?target={{ prometheus_ssh_exporter_molecule_live_target }}"
+        method: GET
+        return_content: true
+      register: prometheus_ssh_exporter_default_module_probe
+
+    - name: Assert the role's own configuration template reached the running Prometheus SSH exporter
+      ansible.builtin.assert:
+        that:
+          - prometheus_ssh_exporter_default_module_probe.status == 200
+          - "'ssh_success 0' in prometheus_ssh_exporter_default_module_probe.content.splitlines()"
+        fail_msg: "The exporter does not know the role's own `default` module: {{ prometheus_ssh_exporter_default_module_probe.content }}"
+        success_msg: "The exporter knows the role's own `default` module, so the rendered configuration file is what it loaded"
+
+    # Probing SSH servers is the whole job of this exporter, so this is what
+    # makes the scenario a test of the role rather than of a container that
+    # happens to answer HTTP.
+    #
+    # The retry is for the target rather than for the exporter: the OpenSSH
+    # image generates its host keys on first boot and does not accept
+    # connections until it has.
+    - name: Probe a reachable SSH target through the module the scenario configured
+      ansible.builtin.uri:
+        url: "{{ prometheus_ssh_exporter_molecule_probe_url }}?target={{ prometheus_ssh_exporter_molecule_live_target }}&module={{ prometheus_ssh_exporter_molecule_probe_module }}"
+        method: GET
+        return_content: true
+      register: prometheus_ssh_exporter_probe_up
+      until: "'ssh_success 1' in prometheus_ssh_exporter_probe_up.content.splitlines()"
+      retries: 30
+      delay: 5
+
+    - name: Assert the probe of a reachable SSH target succeeded
+      ansible.builtin.assert:
+        that:
+          - "'ssh_success 1' in prometheus_ssh_exporter_probe_up.content.splitlines()"
+          - "'ssh_failure{reason=\"error\"} 0' in prometheus_ssh_exporter_probe_up.content.splitlines()"
+          - "'ssh_failure{reason=\"timeout\"} 0' in prometheus_ssh_exporter_probe_up.content.splitlines()"
+          # The command ran and its output matched what the module requires it
+          # to match, which is what tells a completed SSH session apart from a
+          # bare connection.
+          - "'ssh_failure{reason=\"command-error\"} 0' in prometheus_ssh_exporter_probe_up.content.splitlines()"
+          - "'ssh_failure{reason=\"command-output\"} 0' in prometheus_ssh_exporter_probe_up.content.splitlines()"
+        fail_msg: "The probe of a reachable SSH target did not succeed: {{ prometheus_ssh_exporter_probe_up.content }}"
+        success_msg: "The exporter completed an SSH session against a reachable target and reported it up"
+
+    # The strongest single statement in this scenario: the label carries the
+    # target's own hostname, which the exporter could only have learned by
+    # running `hostname` in a session on it. Nothing the exporter knows on its
+    # own could produce this value.
+    - name: Assert the Prometheus SSH exporter reported a value it read off the target
+      ansible.builtin.assert:
+        that: >-
+          ('ssh_output{output="' ~ prometheus_ssh_exporter_molecule_target_container_name ~ '"} 1')
+          in prometheus_ssh_exporter_probe_up.content.splitlines()
+        fail_msg: "The probe did not report the target's own hostname: {{ prometheus_ssh_exporter_probe_up.content }}"
+        success_msg: "The probe reported {{ prometheus_ssh_exporter_molecule_target_container_name }}, read off the target over SSH"
+
+    # The negative half, and the one that proves the probe result is a
+    # measurement rather than a constant: the same module against a port on the
+    # very same host where nothing listens has to come back down.
+    - name: Probe an unreachable SSH target through the module the scenario configured
+      ansible.builtin.uri:
+        url: "{{ prometheus_ssh_exporter_molecule_probe_url }}?target={{ prometheus_ssh_exporter_molecule_dead_target }}&module={{ prometheus_ssh_exporter_molecule_probe_module }}"
+        method: GET
+        return_content: true
+      register: prometheus_ssh_exporter_probe_down
+
+    - name: Assert the probe of an unreachable SSH target failed
+      ansible.builtin.assert:
+        that:
+          - "'ssh_success 0' in prometheus_ssh_exporter_probe_down.content.splitlines()"
+          - "'ssh_failure{reason=\"error\"} 1' in prometheus_ssh_exporter_probe_down.content.splitlines()"
+        fail_msg: "The probe of an unreachable SSH target did not fail: {{ prometheus_ssh_exporter_probe_down.content }}"
+        success_msg: "The exporter probed an unreachable SSH target and reported it down"
+
+    # The same probe once more, through a module which leaves `output_truncate`
+    # unset and therefore takes it from the process command line. The value the
+    # scenario asked for is shorter than the target's hostname, and the
+    # exporter's own default is longer than it, so a truncated label here can
+    # only mean that `prometheus_ssh_exporter_process_extra_arguments` reached
+    # the command line the systemd unit builds.
+    - name: Probe through a module that takes its output length from the process arguments
+      ansible.builtin.uri:
+        url: "{{ prometheus_ssh_exporter_molecule_probe_url }}?target={{ prometheus_ssh_exporter_molecule_live_target }}&module={{ prometheus_ssh_exporter_molecule_truncating_module }}"
+        method: GET
+        return_content: true
+      register: prometheus_ssh_exporter_probe_truncated
+      until: "'ssh_success 1' in prometheus_ssh_exporter_probe_truncated.content.splitlines()"
+      retries: 30
+      delay: 5
+
+    - name: Assert the role's process arguments reached the running Prometheus SSH exporter
+      ansible.builtin.assert:
+        that: >-
+          ('ssh_output{output="' ~ prometheus_ssh_exporter_molecule_truncated_output ~ '"} 1')
+          in prometheus_ssh_exporter_probe_truncated.content.splitlines()
+        fail_msg: >-
+          The output was not truncated to {{ prometheus_ssh_exporter_molecule_output_truncate }} characters,
+          so --collector.ssh.default-output-truncate did not reach the process: {{ prometheus_ssh_exporter_probe_truncated.content }}
+        success_msg: "The output is truncated to {{ prometheus_ssh_exporter_molecule_truncated_output }}, as the role's process arguments asked"
+
+    # Tying the running version to `prometheus_ssh_exporter_version` is what
+    # makes this scenario a real test of the version that Renovate bumps: a bump
+    # that produces an unusable image cannot pass here.
+    #
+    # It is asked of the binary rather than of the metrics endpoint, because
+    # this exporter registers no build-information metric at all. The only
+    # `version="..."` on `/metrics` belongs to `go_info`, and that is the Go
+    # toolchain the exporter was built with - not the exporter's own version.
+    - name: Ask the running Prometheus SSH exporter binary for its version
+      ansible.builtin.command:
+        argv:
+          - docker
+          - exec
+          - "{{ prometheus_ssh_exporter_defaults.prometheus_ssh_exporter_identifier }}"
+          - /ssh_exporter
+          - --version
+      register: prometheus_ssh_exporter_version_output
+      changed_when: false
+
+    # Both streams are searched because the exporter's argument parser writes
+    # `--version` to standard error rather than to standard output, which is
+    # easy to mistake for an empty answer.
+    #
+    # The group reference is written with a single backslash on purpose. This is
+    # a YAML block scalar, where Jinja string literals keep their backslashes
+    # verbatim, so the `\\1` that a double-quoted scalar would need arrives here
+    # as two backslashes and `regex_search` rejects it.
+    - name: Determine the version the running Prometheus SSH exporter reports
+      ansible.builtin.set_fact:
+        prometheus_ssh_exporter_running_version: >-
+          {{
+            (prometheus_ssh_exporter_version_output.stdout ~ prometheus_ssh_exporter_version_output.stderr)
+            | regex_search('ssh_exporter, version ([^\s]+)', '\1')
+            | default([], true) | first | default('none')
+          }}
+
+    # The version variable carries a leading `v` (`v1.6.0`) but the binary
+    # reports the bare version (`1.6.0`). The comparison is a prefix match, so
+    # that a build suffix appearing upstream does not fail the scenario.
+    - name: Assert the running Prometheus SSH exporter is the version the role asks for
+      ansible.builtin.assert:
+        that: >-
+          prometheus_ssh_exporter_running_version.startswith(
+            prometheus_ssh_exporter_defaults.prometheus_ssh_exporter_version | string | regex_replace('^v', '')
+          )
+        fail_msg: >-
+          Prometheus SSH exporter reports version {{ prometheus_ssh_exporter_running_version }},
+          but the role asks for {{ prometheus_ssh_exporter_defaults.prometheus_ssh_exporter_version }}
+        success_msg: "Prometheus SSH exporter reports version {{ prometheus_ssh_exporter_running_version }}"
+
+    - name: Show Prometheus SSH exporter verification summary
+      ansible.builtin.debug:
+        msg:
+          - "Prometheus SSH exporter systemd: {{ prometheus_ssh_exporter_service.status.ActiveState }}"
+          - "Prometheus SSH exporter version: {{ prometheus_ssh_exporter_running_version }}"
+          - "Prometheus SSH exporter image without the role's configuration: rc={{ prometheus_ssh_exporter_baseline.rc }}"
+          - "Prometheus SSH exporter unconfigured module: HTTP {{ prometheus_ssh_exporter_unknown_module_probe.status }}"
+          - "Prometheus SSH exporter probe of a reachable SSH target: {{ prometheus_ssh_exporter_probe_up.content | regex_search('ssh_success [0-9]') }}"
+          - "Prometheus SSH exporter probe of an unreachable SSH target: {{ prometheus_ssh_exporter_probe_down.content | regex_search('ssh_success [0-9]') }}"
+          - "Prometheus SSH exporter output read off the target: {{ prometheus_ssh_exporter_probe_up.content | regex_search('ssh_output\\{output=\"[^\"]*\"\\}') }}"
+          - "Prometheus SSH exporter output under the role's process arguments: {{ prometheus_ssh_exporter_probe_truncated.content | regex_search('ssh_output\\{output=\"[^\"]*\"\\}') }}"
+          - "Prometheus SSH exporter container networks: {{ prometheus_ssh_exporter_container.NetworkSettings.Networks.keys() | list | join(', ') }}"
