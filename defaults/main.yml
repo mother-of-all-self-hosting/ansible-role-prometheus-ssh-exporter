@@ -36,14 +36,13 @@ prometheus_ssh_exporter_container_image_registry_prefix_upstream_default: docker
 
 # The base container network
 #
-# Official recommendations are to run this container with `--net=host`,
-# but we don't do that, since it:
-# - exposes the metrics web server way too publicly (we'd potentially like to add HTTP Basic authentication, etc.)
-# - or listens on a loopback interface only (--net=host and 127.0.0.1:9100), which is not reachable from a local Prometheus container
+# This exporter dials out to the SSH targets it is asked to probe, so the
+# network it runs on is what decides which of them it can reach. Targets living
+# in another container network need that network added to
+# `prometheus_ssh_exporter_container_additional_networks_custom`.
 #
-# Not using `--net=host` means that our network statistic reports are likely broken (inaccurate),
-# because ssh-exporter can't see all interfaces, etc.
-# For now, we'll live with that, until someone develops a better solution.
+# The container is not run with `--net=host`, because that would expose the
+# metrics web server as widely as the host itself is exposed.
 prometheus_ssh_exporter_container_network: "{{ prometheus_ssh_exporter_identifier }}"
 
 # Control if the container network is deleted on uninstalling.
@@ -51,7 +50,7 @@ prometheus_ssh_exporter_container_network_deletion_enabled: true
 
 # Specify how the container publishes its HTTP port (as defined by `prometheus_ssh_exporter_container_http_port`).
 #
-# Takes an "<ip>:<port>" or "<port>" value (e.g. "127.0.0.1:9100"), just a port number or empty string to not expose.
+# Takes an "<ip>:<port>" or "<port>" value (e.g. "127.0.0.1:9312"), just a port number or empty string to not expose.
 prometheus_ssh_exporter_container_http_host_bind_port: ""
 
 # The port number in the container
