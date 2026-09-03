@@ -348,7 +348,7 @@
     # The version variable carries a leading `v` (`v1.6.0`) but the binary
     # reports the bare version (`1.6.0`). The comparison is a prefix match, so
     # that a build suffix appearing upstream does not fail the scenario.
-    - name: Assert the running Prometheus SSH exporter is the version the role asks for
+    - name: Assert the running Prometheus SSH exporter is the version this role installs
       ansible.builtin.assert:
         that: >-
           prometheus_ssh_exporter_running_version.startswith(
