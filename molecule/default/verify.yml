@@ -352,7 +352,7 @@
           but the role asks for {{ prometheus_ssh_exporter_defaults.prometheus_ssh_exporter_version }}
         success_msg: "Prometheus SSH exporter reports version {{ prometheus_ssh_exporter_running_version }}"
 
-    - name: Show Prometheus SSH exporter verification summary
+    - name: Show the Prometheus SSH exporter verification summary
       ansible.builtin.debug:
         msg:
           - "Prometheus SSH exporter systemd: {{ prometheus_ssh_exporter_service.status.ActiveState }}"
