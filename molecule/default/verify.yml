@@ -347,10 +347,8 @@
           prometheus_ssh_exporter_running_version.startswith(
             prometheus_ssh_exporter_defaults.prometheus_ssh_exporter_version | string | regex_replace('^v', '')
           )
-        fail_msg: >-
-          Prometheus SSH exporter reports version {{ prometheus_ssh_exporter_running_version }},
-          but the role asks for {{ prometheus_ssh_exporter_defaults.prometheus_ssh_exporter_version }}
-        success_msg: "Prometheus SSH exporter reports version {{ prometheus_ssh_exporter_running_version }}"
+        fail_msg: "Prometheus SSH exporter reports {{ prometheus_ssh_exporter_running_version | default('none') }}, expected {{ prometheus_ssh_exporter_defaults.prometheus_ssh_exporter_version }}"
+        success_msg: "Prometheus SSH exporter reports {{ prometheus_ssh_exporter_running_version }}"
 
     - name: Show the Prometheus SSH exporter verification summary
       ansible.builtin.debug:
