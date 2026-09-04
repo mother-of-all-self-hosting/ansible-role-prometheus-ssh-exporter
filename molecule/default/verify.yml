@@ -32,16 +32,9 @@
 
   tasks:
     # The role is not included in this playbook, so its defaults are not in
-    # scope. Reading defaults/main.yml directly keeps the assertions below tied
-    # to the values that this role ships, with nothing to keep in sync in this
-    # scenario. include_vars reads from the controller.
-    #
-    # Loaded under a name of its own: variables loaded into the play outrank the
-    # scenario's inventory group_vars and would quietly undo everything the
-    # scenario configures. Only literal values may be read out of this namespace
-    # - anything the role derives from another variable comes back as an
-    # unrendered template here.
-    - name: Load the Prometheus SSH exporter role defaults
+    # scope. Reading defaults/main.yml directly ties the version assertion
+    # below.
+    - name: Load the role defaults
       ansible.builtin.include_vars:
         file: "{{ lookup('env', 'MOLECULE_PROJECT_DIRECTORY') }}/defaults/main.yml"
         name: prometheus_ssh_exporter_defaults
