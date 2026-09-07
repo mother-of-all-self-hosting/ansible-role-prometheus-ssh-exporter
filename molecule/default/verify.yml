@@ -310,7 +310,7 @@
     # this exporter registers no build-information metric at all. The only
     # `version="..."` on `/metrics` belongs to `go_info`, and that is the Go
     # toolchain the exporter was built with - not the exporter's own version.
-    - name: Ask the running Prometheus SSH exporter binary for its version
+    - name: Query the version of the running Prometheus SSH exporter
       ansible.builtin.command:
         argv:
           - docker
