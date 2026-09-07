@@ -56,21 +56,27 @@
           which cannot distinguish a truncation at {{ prometheus_ssh_exporter_molecule_output_truncate }} from the exporter's own default of 50
         success_msg: "The probe target name is long enough to be truncated by the scenario's flag, but not by the exporter's own default"
 
-    - name: Wait for Prometheus SSH exporter service to become active (up to 180s)
-      ansible.builtin.systemd:
+    - name: Wait for the Prometheus SSH exporter systemd service to become active (up to 180s)
+      ansible.builtin.systemd_service:
         name: prometheus-ssh-exporter.service
       register: prometheus_ssh_exporter_service
       until: prometheus_ssh_exporter_service.status.ActiveState == 'active'
       retries: 36
       delay: 5
+      # So that giving up is reported by the assertion below rather than as a
+      # wall of systemd unit properties.
+      failed_when: false
 
-    - name: Assert Prometheus SSH exporter service is active
+    # `Restart=always` in the systemd unit means that even a container which crashes
+    # and gets restarted reads as active here, so this is a precondition rather than
+    # a result.
+    - name: Assert the Prometheus SSH exporter systemd service is active
       ansible.builtin.assert:
         that: prometheus_ssh_exporter_service.status.ActiveState == 'active'
-        fail_msg: "prometheus-ssh-exporter.service not active ({{ prometheus_ssh_exporter_service.status.ActiveState }})"
+        fail_msg: "prometheus-ssh-exporter.service is not active ({{ prometheus_ssh_exporter_service.status.ActiveState }})"
         success_msg: "prometheus-ssh-exporter.service is active"
 
-    - name: Retrieve Prometheus SSH exporter service log for debugging
+    - name: Retrieve the Prometheus SSH exporter systemd service log for debugging
       when: prometheus_ssh_exporter_debug_service_enabled | bool
       ansible.builtin.command:
         cmd: journalctl -xeu prometheus-ssh-exporter.service
