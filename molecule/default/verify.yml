@@ -79,7 +79,7 @@
     - name: Retrieve the Prometheus SSH exporter systemd service log for debugging
       when: prometheus_ssh_exporter_debug_service_enabled | bool
       ansible.builtin.command:
-        cmd: journalctl -xeu prometheus-ssh-exporter.service
+        cmd: journalctl --no-pager --output=cat --unit=prometheus-ssh-exporter.service
       changed_when: false
 
     # Everything below talks to the exporter over its published port. This looks
