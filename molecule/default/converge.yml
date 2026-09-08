@@ -40,10 +40,7 @@
     # because the linting environment in CI has no collections installed.
     - name: Determine whether the Prometheus SSH exporter probe target already exists
       ansible.builtin.command:
-        argv:
-          - docker
-          - inspect
-          - "{{ prometheus_ssh_exporter_molecule_target_container_name }}"
+        cmd: docker inspect {{ prometheus_ssh_exporter_molecule_target_container_name }}
       register: prometheus_ssh_exporter_molecule_target_existing
       changed_when: false
       failed_when: false

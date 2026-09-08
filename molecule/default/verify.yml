@@ -90,10 +90,7 @@
     # never wrote them cannot pass.
     - name: Query the running Prometheus SSH exporter container
       ansible.builtin.command:
-        argv:
-          - docker
-          - inspect
-          - "{{ prometheus_ssh_exporter_defaults.prometheus_ssh_exporter_identifier }}"
+        cmd: docker inspect {{ prometheus_ssh_exporter_defaults.prometheus_ssh_exporter_identifier }}
       register: prometheus_ssh_exporter_inspect
       changed_when: false
 
@@ -140,13 +137,10 @@
     # was mounted where the process looks for it.
     - name: Run the Prometheus SSH exporter image with no configuration file
       ansible.builtin.command:
-        argv:
-          - docker
-          - run
-          - --rm
-          - --name
-          - "{{ prometheus_ssh_exporter_molecule_baseline_container_name }}"
-          - "{{ prometheus_ssh_exporter_container.Config.Image }}"
+        cmd: >-
+          docker run --rm
+          --name {{ prometheus_ssh_exporter_molecule_baseline_container_name }}
+          {{ prometheus_ssh_exporter_container.Config.Image }}
       register: prometheus_ssh_exporter_baseline
       changed_when: false
       failed_when: false
@@ -318,12 +312,9 @@
     # toolchain the exporter was built with - not the exporter's own version.
     - name: Query the version of the running Prometheus SSH exporter
       ansible.builtin.command:
-        argv:
-          - docker
-          - exec
-          - "{{ prometheus_ssh_exporter_defaults.prometheus_ssh_exporter_identifier }}"
-          - /ssh_exporter
-          - --version
+        cmd: >-
+          docker exec {{ prometheus_ssh_exporter_defaults.prometheus_ssh_exporter_identifier }}
+          /ssh_exporter --version
       register: prometheus_ssh_exporter_version_reported
       changed_when: false
 
