@@ -324,7 +324,7 @@
           - "{{ prometheus_ssh_exporter_defaults.prometheus_ssh_exporter_identifier }}"
           - /ssh_exporter
           - --version
-      register: prometheus_ssh_exporter_version_output
+      register: prometheus_ssh_exporter_version_reported
       changed_when: false
 
     # Both streams are searched because the exporter's argument parser writes
@@ -339,7 +339,7 @@
       ansible.builtin.set_fact:
         prometheus_ssh_exporter_running_version: >-
           {{
-            (prometheus_ssh_exporter_version_output.stdout ~ prometheus_ssh_exporter_version_output.stderr)
+            (prometheus_ssh_exporter_version_reported.stdout ~ prometheus_ssh_exporter_version_reported.stderr)
             | regex_search('ssh_exporter, version ([^\s]+)', '\1')
             | default([], true) | first | default('none')
           }}
