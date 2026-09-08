@@ -59,7 +59,7 @@
       when: prometheus_ssh_exporter_molecule_target_existing.rc != 0
       ansible.builtin.command:
         cmd: >-
-          docker run --detach
+          docker run -d
           --name {{ prometheus_ssh_exporter_molecule_target_container_name }}
           --hostname {{ prometheus_ssh_exporter_molecule_target_container_name }}
           --network {{ prometheus_ssh_exporter_container_network }}
