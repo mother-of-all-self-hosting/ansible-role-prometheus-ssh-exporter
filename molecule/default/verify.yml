@@ -41,23 +41,6 @@
             file: "{{ lookup('env', 'MOLECULE_PROJECT_DIRECTORY') }}/defaults/main.yml"
             name: prometheus_ssh_exporter_defaults
 
-        # The truncation check further down is only evidence of anything if the
-        # target's hostname sits between the length this scenario asks for and the
-        # length the exporter would use on its own. Renaming the target container
-        # could silently move it out of that window and leave the check passing for
-        # the wrong reason, so the window is asserted rather than assumed.
-        #
-        # 50 is the exporter's built-in `--collector.ssh.default-output-truncate`.
-        - name: Assert the probe target name can tell a truncated output apart from a full one
-          ansible.builtin.assert:
-            that:
-              - prometheus_ssh_exporter_molecule_target_container_name | length > prometheus_ssh_exporter_molecule_output_truncate
-              - prometheus_ssh_exporter_molecule_target_container_name | length <= 50
-            fail_msg: >-
-              The probe target name is {{ prometheus_ssh_exporter_molecule_target_container_name | length }} characters long,
-              which cannot distinguish a truncation at {{ prometheus_ssh_exporter_molecule_output_truncate }} from the exporter's own default of 50
-            success_msg: "The probe target name is long enough to be truncated by the scenario's flag, but not by the exporter's own default"
-
         - name: Wait for the Prometheus SSH exporter systemd service to become active (up to 180s)
           ansible.builtin.systemd_service:
             name: prometheus-ssh-exporter.service
@@ -83,6 +66,23 @@
           ansible.builtin.command:
             cmd: journalctl --no-pager --output=cat --unit=prometheus-ssh-exporter.service
           changed_when: false
+
+        # The truncation check further down is only evidence of anything if the
+        # target's hostname sits between the length this scenario asks for and the
+        # length the exporter would use on its own. Renaming the target container
+        # could silently move it out of that window and leave the check passing for
+        # the wrong reason, so the window is asserted rather than assumed.
+        #
+        # 50 is the exporter's built-in `--collector.ssh.default-output-truncate`.
+        - name: Assert the probe target name can tell a truncated output apart from a full one
+          ansible.builtin.assert:
+            that:
+              - prometheus_ssh_exporter_molecule_target_container_name | length > prometheus_ssh_exporter_molecule_output_truncate
+              - prometheus_ssh_exporter_molecule_target_container_name | length <= 50
+            fail_msg: >-
+              The probe target name is {{ prometheus_ssh_exporter_molecule_target_container_name | length }} characters long,
+              which cannot distinguish a truncation at {{ prometheus_ssh_exporter_molecule_output_truncate }} from the exporter's own default of 50
+            success_msg: "The probe target name is long enough to be truncated by the scenario's flag, but not by the exporter's own default"
 
         # Everything below talks to the exporter over its published port. This looks
         # at the container itself, and is where the files the role rendered show up:
