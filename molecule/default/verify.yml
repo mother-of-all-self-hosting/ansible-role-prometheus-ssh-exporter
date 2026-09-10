@@ -31,6 +31,8 @@
     prometheus_ssh_exporter_molecule_unknown_module: molecule_module_that_does_not_exist
 
   tasks:
+    - name: Verify that Prometheus SSH exporter works
+      block:
     # The role is not included in this playbook, so its defaults are not in
     # scope. Reading defaults/main.yml directly ties the version assertion
     # below.
@@ -359,3 +361,19 @@
           - "Prometheus SSH exporter output read off the target: {{ prometheus_ssh_exporter_probe_up.content | regex_search('ssh_output\\{output=\"[^\"]*\"\\}') }}"
           - "Prometheus SSH exporter output under the role's process arguments: {{ prometheus_ssh_exporter_probe_truncated.content | regex_search('ssh_output\\{output=\"[^\"]*\"\\}') }}"
           - "Prometheus SSH exporter container networks: {{ prometheus_ssh_exporter_container.NetworkSettings.Networks.keys() | list | join(', ') }}"
+
+      rescue:
+        # Whatever went wrong, the reason is almost always in the systemd service log.
+        - name: Retrieve the Prometheus SSH exporter systemd service log
+          ansible.builtin.command:
+            cmd: journalctl --no-pager --output=cat --unit=prometheus-ssh-exporter.service
+          register: prometheus_ssh_exporter_service_log
+          changed_when: false
+
+        - name: Show the Prometheus SSH exporter systemd service log
+          ansible.builtin.debug:
+            var: prometheus_ssh_exporter_service_log.stdout_lines
+
+        - name: Fail because verification did not pass
+          ansible.builtin.fail:
+            msg: "Prometheus SSH exporter verification failed. The systemd service log is printed above."
