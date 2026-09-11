@@ -30,6 +30,9 @@
     # nor this scenario's extension.
     prometheus_ssh_exporter_molecule_unknown_module: molecule_module_that_does_not_exist
 
+    prometheus_ssh_exporter_verify_units:
+      - prometheus-ssh-exporter.service
+
   tasks:
     - name: Verify that Prometheus SSH exporter works
       block:
@@ -41,13 +44,14 @@
             file: "{{ lookup('env', 'MOLECULE_PROJECT_DIRECTORY') }}/defaults/main.yml"
             name: prometheus_ssh_exporter_defaults
 
-        - name: Wait for the Prometheus SSH exporter systemd service to become active (up to 180s)
+        - name: Wait for the Prometheus SSH exporter systemd services to become active (up to 180s each)
           ansible.builtin.systemd_service:
-            name: prometheus-ssh-exporter.service
-          register: prometheus_ssh_exporter_service
-          until: prometheus_ssh_exporter_service.status.ActiveState == 'active'
+            name: "{{ item }}"
+          register: prometheus_ssh_exporter_services
+          until: prometheus_ssh_exporter_services.status.ActiveState == 'active'
           retries: 36
           delay: 5
+          loop: "{{ prometheus_ssh_exporter_verify_units }}"
           # So that giving up is reported by the assertion below rather than as a
           # wall of systemd unit properties.
           failed_when: false
@@ -55,17 +59,20 @@
         # `Restart=always` in the systemd unit means that even a container which crashes
         # and gets restarted reads as active here, so this is a precondition rather than
         # a result.
-        - name: Assert the Prometheus SSH exporter systemd service is active
+        - name: Assert the Prometheus SSH exporter systemd services are active
           ansible.builtin.assert:
-            that: prometheus_ssh_exporter_service.status.ActiveState == 'active'
-            fail_msg: "prometheus-ssh-exporter.service is not active ({{ prometheus_ssh_exporter_service.status.ActiveState }})"
-            success_msg: "prometheus-ssh-exporter.service is active"
+            that: prometheus_ssh_exporter_services.results | map(attribute='status.ActiveState') | unique | list == ['active']
+            fail_msg: >-
+              Not every service is active:
+              {{ dict(prometheus_ssh_exporter_verify_units | zip(prometheus_ssh_exporter_services.results | map(attribute='status.ActiveState'))) }}
+            success_msg: "Every systemd service is active"
 
-        - name: Retrieve the Prometheus SSH exporter systemd service log for debugging
+        - name: Retrieve the Prometheus SSH exporter systemd services log for debugging
           when: prometheus_ssh_exporter_debug_service_enabled | bool
           ansible.builtin.command:
-            cmd: journalctl --no-pager --output=cat --unit=prometheus-ssh-exporter.service
+            cmd: "journalctl --no-pager --output=cat --unit={{ item }}"
           changed_when: false
+          loop: "{{ prometheus_ssh_exporter_verify_units }}"
 
         # The truncation check further down is only evidence of anything if the
         # target's hostname sits between the length this scenario asks for and the
@@ -352,7 +359,7 @@
         - name: Show the Prometheus SSH exporter verification summary
           ansible.builtin.debug:
             msg:
-              - "Prometheus SSH exporter systemd: {{ prometheus_ssh_exporter_service.status.ActiveState }}"
+              - "Prometheus SSH exporter systemd: {% for unit, state in prometheus_ssh_exporter_verify_units | zip(prometheus_ssh_exporter_services.results | map(attribute='status.ActiveState')) %}{{ unit }} ({{ state }}){% if not loop.last %}, {% endif %}{% endfor %}"
               - "Prometheus SSH exporter version: {{ prometheus_ssh_exporter_running_version }}"
               - "Prometheus SSH exporter image without the role's configuration: rc={{ prometheus_ssh_exporter_baseline.rc }}"
               - "Prometheus SSH exporter unconfigured module: HTTP {{ prometheus_ssh_exporter_unknown_module_probe.status }}"
