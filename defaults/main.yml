@@ -102,7 +102,7 @@ prometheus_ssh_exporter_container_extra_arguments: "{{ prometheus_ssh_exporter_c
 prometheus_ssh_exporter_container_extra_arguments_auto: []
 prometheus_ssh_exporter_container_extra_arguments_custom: []
 
-# A list of extra arguments to pass to the Prometheus SSH exporter process
+# A list of extra arguments to pass to the process inside the container
 # Example: ['--SOME_ARGUMENT']
 prometheus_ssh_exporter_process_extra_arguments: "{{ prometheus_ssh_exporter_process_extra_arguments_auto + prometheus_ssh_exporter_process_extra_arguments_custom }}"
 prometheus_ssh_exporter_process_extra_arguments_auto: []
