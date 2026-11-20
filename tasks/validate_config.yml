@@ -29,7 +29,6 @@
   with_items:
     - prometheus_ssh_exporter_uid
     - prometheus_ssh_exporter_gid
-    - prometheus_ssh_exporter_container_network
 
 - name: Run if Traefik is enabled
   when: prometheus_ssh_exporter_container_labels_traefik_enabled | bool
