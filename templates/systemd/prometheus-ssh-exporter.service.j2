@@ -46,9 +46,11 @@ ExecStartPre={{ devture_systemd_docker_base_host_command_docker }} create \
       {{ arg }} \
       {% endfor %}
 
+{% if prometheus_ssh_exporter_container_network != 'host' %}
 {% for network in prometheus_ssh_exporter_container_additional_networks %}
 ExecStartPre={{ devture_systemd_docker_base_host_command_docker }} network connect {{ network }} {{ prometheus_ssh_exporter_identifier }}
 {% endfor %}
+{% endif %}
 
 ExecStart={{ devture_systemd_docker_base_host_command_docker }} start --attach {{ prometheus_ssh_exporter_identifier }}
 
